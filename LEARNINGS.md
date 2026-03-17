@@ -35,6 +35,15 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Auto-starts on login (login item + AutoStart setting)
 - `credsStore` removed from `~/.docker/config.json` — required for SSH docker pulls to work
 
+## Caddy Reverse Proxy
+
+- Installed via Homebrew at `/opt/homebrew/bin/caddy` (v2.11.2)
+- Caddyfile: `~/services/config/Caddyfile` (version-controlled in repo at `config/Caddyfile`)
+- launchd service: `~/Library/LaunchAgents/com.caddy.server.plist` (version-controlled in `config/`)
+- Data/logs: `~/services/data/caddy/` (XDG_DATA_HOME)
+- Reload config: `caddy reload --config ~/services/config/Caddyfile`
+- Validate config: `caddy validate --config ~/services/config/Caddyfile`
+
 ## Gotchas
 
 - `systemsetup` commands emit `Error:-99` on modern macOS — this is cosmetic, settings still apply

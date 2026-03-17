@@ -65,3 +65,33 @@ Raw session history for the mac-mini-server project.
 **Mistakes made:**
 - Initially tried to run docker before the install completed — Docker Desktop needs GUI-based first run or `install --accept-license`
 - Credential helper keychain issue took several attempts to diagnose — the fix was removing stored credentials AND the credsStore config
+
+---
+
+## Agent Session - Issue #3
+
+**Worked on:** Issue #3 - Install Caddy reverse proxy
+
+**What I did:**
+- Installed Caddy v2.11.2 via Homebrew on Mac Mini
+- Created Caddyfile at ~/services/config/Caddyfile with placeholder response on :80
+- Configured Caddy log rotation (10MB per file, 5 files) via Caddyfile `log` directive
+- Created launchd plist at ~/Library/LaunchAgents/com.caddy.server.plist
+- Service auto-starts on login with KeepAlive enabled
+- Caddy data dir set to ~/services/data/caddy/ via XDG_DATA_HOME
+- Verified all acceptance criteria: version, config valid, service loaded, curl responds
+
+**What I learned:**
+- Homebrew Caddy installs to /opt/homebrew/bin/caddy (ARM64 Mac)
+- Caddy has built-in log rotation via `roll_size` and `roll_keep` directives
+- `caddy validate --config <path>` checks syntax; `caddy reload --config <path>` applies changes live
+- `caddy fmt --overwrite` auto-formats Caddyfile
+- launchd KeepAlive ensures Caddy restarts if it crashes
+- Caddy's global options block (the `{ }` at top of Caddyfile) configures logging, etc.
+
+**Codebase facts discovered:**
+- Added config/ directory for version-controlled config files (Caddyfile, launchd plist)
+- Script naming follows pattern: scripts/NN-description.sh
+
+**Mistakes made:**
+- None
