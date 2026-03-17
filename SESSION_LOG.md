@@ -208,3 +208,27 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Created redundant `config/email-routing.md` before checking that `docs/email-routing.md` already existed — cleaned up
+
+---
+
+## Agent Session - Issue #5 (Completion Handoff)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (final steps)
+
+**What I learned:**
+- The `/zones/{zone_id}/email/routing` status endpoint and `/zones/{zone_id}/email/routing/enable` endpoint both require account-level permissions not present in the current API token
+- The `/zones/{zone_id}/email/routing/rules` endpoint works fine with the current token — rules can be read/created/modified
+- Both routing rules (podcast@ and catch-all) are confirmed present and enabled via API
+- Enabling Email Routing is genuinely dashboard-only with the current token scope
+
+**Codebase facts discovered:**
+- HANDOFF.md is gitignored (per LEARNINGS.md) so it won't be committed
+
+**What I did:**
+- Verified routing rules exist and are enabled via API
+- Attempted to enable email routing via API (confirmed auth error)
+- Created HANDOFF.md with detailed steps for the human to complete in Cloudflare Dashboard
+- Signaled PAUSED for human action
+
+**Mistakes made:**
+- None
