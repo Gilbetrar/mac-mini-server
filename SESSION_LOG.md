@@ -127,3 +127,32 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #4 (completion)
+
+**Worked on:** Issue #4 - Cloudflare setup + Tunnel (completing after human auth)
+
+**What I did:**
+- User provided Cloudflare API token (created per handoff instructions)
+- Saved token to ~/services/config/.cloudflare-token (chmod 600)
+- Verified token via Cloudflare API — active and valid
+- Found zone ID for bjblabs.com (9d3c311fe7bd41ecab3830a57a3a51a6)
+- Created tunnel "mac-mini" via Cloudflare API (not cloudflared CLI, since no cert.pem)
+- Saved tunnel credentials JSON to ~/.cloudflared/
+- Deployed config.yml with real tunnel UUID
+- Created DNS CNAME: test.bjblabs.com → tunnel
+- Fixed launchd plist arg order (--config must come before run)
+- Tunnel running with 4 healthy QUIC connections
+
+**What I learned:**
+- Can create tunnels via Cloudflare API with an API token — no need for `cloudflared tunnel login` at all
+- API endpoint: POST /accounts/{acct}/cfd_tunnel with tunnel_secret (base64 random)
+- The API response includes a `credentials_file` object — save it to ~/.cloudflared/<tunnel-id>.json
+- cloudflared arg order: `tunnel --config <path> run` not `tunnel run --config <path>`
+- DNS CNAME for tunnel: point to `<tunnel-id>.cfargotunnel.com` with proxied=true
+- Cloudflare NS for bjblabs.com: ximena.ns.cloudflare.com, yew.ns.cloudflare.com
+
+**Mistakes made:**
+- Initial launchd plist had wrong arg order (`run` before `--config`) — cloudflared showed help instead of running

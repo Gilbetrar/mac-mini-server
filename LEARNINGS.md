@@ -44,6 +44,18 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Reload config: `caddy reload --config ~/services/config/Caddyfile`
 - Validate config: `caddy validate --config ~/services/config/Caddyfile`
 
+## Cloudflare Tunnel
+
+- Tunnel name: `mac-mini`, ID: `e4978b52-8394-4f5b-b715-ee96a5a9e641`
+- Config: `~/services/config/cloudflared/config.yml`
+- Credentials: `~/.cloudflared/<tunnel-id>.json` (not in repo)
+- API token: `~/services/config/.cloudflare-token` (600 perms)
+- launchd: `~/Library/LaunchAgents/com.cloudflare.cloudflared.plist`
+- Zone ID: `9d3c311fe7bd41ecab3830a57a3a51a6`, Account ID: `95f53250a929e155644f51e03fc7c910`
+- Cloudflare NS (for cutover): `ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`
+- DNS: `test.bjblabs.com` CNAME → tunnel (ready after nameserver cutover)
+- Check status: `curl -s ... /cfd_tunnel/<id>` with bearer token (see scripts)
+
 ## Gotchas
 
 - `systemsetup` commands emit `Error:-99` on modern macOS — this is cosmetic, settings still apply
@@ -52,6 +64,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - SSH non-interactive sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
 - Docker Desktop `credsStore: desktop` uses macOS keychain, fails in SSH sessions (keychain locked)
 - Docker Desktop installer: `/Applications/Docker.app/Contents/MacOS/install --accept-license --user ben`
+- cloudflared arg order matters: `cloudflared tunnel --config <path> run` (--config before run)
 
 ## Repo Conventions
 
