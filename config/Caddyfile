@@ -1,0 +1,17 @@
+# Caddyfile — Mac Mini reverse proxy
+# Managed by: mac-mini-server repo
+#
+# This is the placeholder config. Service-specific routes
+# will be added as services are migrated (issues #7-#9).
+{
+	log {
+		output file /Users/ben/services/data/caddy/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
+
+:80 {
+	respond "Mac Mini server is running." 200
+}
