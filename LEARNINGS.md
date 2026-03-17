@@ -56,6 +56,14 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - DNS: `test.bjblabs.com` CNAME → tunnel (ready after nameserver cutover)
 - Check status: `curl -s ... /cfd_tunnel/<id>` with bearer token (see scripts)
 
+## Cloudflare Email Routing
+
+- Rules API works with existing token: `/zones/{zone_id}/email/routing/rules`
+- Catch-all uses special endpoint: `/zones/{zone_id}/email/routing/rules/catch_all`
+- Enabling the feature and managing destination addresses require account-level permissions (dashboard only with current token)
+- Rules: podcast@ and catch-all both forward to `ben.bateman.email@gmail.com`
+- Documentation: `docs/email-routing.md` (repo), `~/services/config/email-routing.md` (Mac Mini)
+
 ## Gotchas
 
 - `systemsetup` commands emit `Error:-99` on modern macOS — this is cosmetic, settings still apply

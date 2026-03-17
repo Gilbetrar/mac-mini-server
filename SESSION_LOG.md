@@ -184,3 +184,27 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #5 (API rules + updated handoff)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (routing rules via API)
+
+**What I did:**
+- Discovered the API token CAN create/edit/delete email routing rules at zone level (previous agent said it couldn't)
+- Created `podcast@bjblabs.com` → `ben.bateman.email@gmail.com` forwarding rule via API
+- Updated catch-all rule from disabled "drop" to enabled "forward to Gmail" via the `catch_all` endpoint
+- Updated HANDOFF.md to reflect that rules are already created — human only needs to enable Email Routing in dashboard
+- Removed redundant `config/email-routing.md` (docs/email-routing.md is the canonical version)
+
+**What I learned:**
+- The API token has zone-level email routing rule permissions but NOT account-level permissions
+- Zone endpoints that work: GET/POST/PUT/DELETE `/zones/{zone_id}/email/routing/rules`
+- Zone endpoints that fail (auth error): GET `/zones/{zone_id}/email/routing`, POST `/zones/{zone_id}/email/routing/enable`
+- Account endpoints that fail: GET `/accounts/{acct}/email/routing/addresses`
+- Catch-all rule must be updated via `/email/routing/rules/catch_all` endpoint, NOT by ID
+- Forwarding rules can be created even without a verified destination address (may need verification before delivery works)
+
+**Mistakes made:**
+- Created redundant `config/email-routing.md` before checking that `docs/email-routing.md` already existed — cleaned up
