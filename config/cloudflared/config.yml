@@ -1,0 +1,17 @@
+# cloudflared tunnel configuration
+# Managed by: mac-mini-server repo
+#
+# IMPORTANT: Replace TUNNEL_UUID with the actual tunnel UUID after creation.
+# The credentials file is created by `cloudflared tunnel create` and should
+# NOT be committed to the repo.
+
+tunnel: TUNNEL_UUID
+credentials-file: /Users/ben/.cloudflared/TUNNEL_UUID.json
+
+ingress:
+  # Route all traffic to Caddy reverse proxy
+  # Caddy handles per-subdomain routing via its Caddyfile
+  - service: http://localhost:80
+
+# Note: the catch-all rule above means ALL requests go to Caddy.
+# Caddy's Caddyfile determines what each subdomain serves.
