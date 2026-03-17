@@ -95,3 +95,35 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #4 (partial)
+
+**Worked on:** Issue #4 - Cloudflare setup + Tunnel (prep work only)
+
+**What I did:**
+- Installed cloudflared v2026.3.0 via Homebrew on Mac Mini
+- Created tunnel config template at config/cloudflared/config.yml
+- Created launchd plist at config/com.cloudflare.cloudflared.plist
+- Created setup script scripts/04-setup-cloudflare-tunnel.sh for post-auth steps
+- Created HANDOFF.md with exact instructions for interactive auth steps
+- Created ~/services/config/cloudflared/ directory on Mac Mini
+
+**Why PAUSED:**
+- `cloudflared tunnel login` requires interactive browser authentication
+- bjblabs.com must be added to Cloudflare dashboard manually (GUI)
+- Both steps require human interaction — can't be done autonomously
+
+**What the human needs to do:**
+1. Add bjblabs.com to Cloudflare dashboard (free plan, don't change nameservers)
+2. Run `ssh -t mac-mini "cloudflared tunnel login"` and authorize in browser
+3. Either run `./scripts/04-setup-cloudflare-tunnel.sh` or let next agent finish
+
+**What I learned:**
+- `cloudflared tunnel login` prints a URL for browser-based OAuth, saves cert to ~/.cloudflared/cert.pem
+- HANDOFF.md is gitignored by design — it's a transient communication file
+- cloudflared installs cleanly via Homebrew on ARM64 Mac
+
+**Mistakes made:**
+- None
