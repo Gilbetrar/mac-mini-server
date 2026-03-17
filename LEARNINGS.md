@@ -56,6 +56,17 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - DNS: `test.bjblabs.com` CNAME → tunnel (ready after nameserver cutover)
 - Check status: `curl -s ... /cfd_tunnel/<id>` with bearer token (see scripts)
 
+## DNS Cutover (2026-03-17)
+
+- Nameservers switched from Route 53 to Cloudflare: `ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`
+- Zone status: **active**
+- All 14 Route 53 records replicated in Cloudflare before cutover
+- Route 53 hosted zone (`Z0806990T0ZB8GBKDCD9`) preserved as rollback
+- Nameserver update done via AWS CLI: `aws route53domains update-domain-nameservers`
+- Route 53 is also the domain registrar (not just DNS hosting)
+- Existing services (anki-renderer, legalpodcast) still serve from CloudFront via Cloudflare DNS — CNAME records with `proxied: false`
+- Route 53 zone deletion eligible after 2026-03-31 (2-week stability window)
+
 ## Cloudflare Email Routing
 
 - Rules API works with existing token: `/zones/{zone_id}/email/routing/rules`
@@ -63,6 +74,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Enabling the feature and managing destination addresses require account-level permissions (dashboard only with current token)
 - Rules: podcast@ and catch-all both forward to `ben.bateman.email@gmail.com`
 - Documentation: `docs/email-routing.md` (repo), `~/services/config/email-routing.md` (Mac Mini)
+- Email Routing requires zone to be **active** (nameservers on Cloudflare) before it can be enabled
 
 ## Gotchas
 
