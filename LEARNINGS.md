@@ -26,11 +26,23 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Auto-restart after power failure: `sudo systemsetup -setrestartpowerfailure on`
 - Firewall enabled: `sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on`
 
+## Docker Desktop
+
+- Installed at `/Applications/Docker.app`, CLI symlinks in `/usr/local/bin/`
+- Settings file: `~/Library/Group Containers/group.com.docker/settings-store.json`
+- Daemon config: `~/.docker/daemon.json` (log rotation configured)
+- Resource limits: 4 CPUs, 8GB RAM (half the M4's resources)
+- Auto-starts on login (login item + AutoStart setting)
+- `credsStore` removed from `~/.docker/config.json` — required for SSH docker pulls to work
+
 ## Gotchas
 
 - `systemsetup` commands emit `Error:-99` on modern macOS — this is cosmetic, settings still apply
 - The firewall `--setglobalstate on` command produces no output on success
 - Remote user is `ben` (lowercase), not `Ben` — despite the Mac hostname showing "Ben"
+- SSH non-interactive sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
+- Docker Desktop `credsStore: desktop` uses macOS keychain, fails in SSH sessions (keychain locked)
+- Docker Desktop installer: `/Applications/Docker.app/Contents/MacOS/install --accept-license --user ben`
 
 ## Repo Conventions
 
