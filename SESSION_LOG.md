@@ -156,3 +156,31 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Initial launchd plist had wrong arg order (`run` before `--config`) — cloudflared showed help instead of running
+
+---
+
+## Agent Session - Issue #5 (prep)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (documentation + handoff)
+
+**What I did:**
+- Verified cloudflared tunnel is running (PID 7009, healthy) on Mac Mini
+- Found that the Cloudflare API token exists but only has DNS/zone permissions — not email routing
+- Created `docs/email-routing.md` with full documentation (routes, adding/removing, MX records, troubleshooting)
+- Deployed documentation to Mac Mini at `~/services/config/email-routing.md`
+- Created HANDOFF.md with step-by-step dashboard instructions for enabling Email Routing
+- HANDOFF offers two paths: manual dashboard config or adding API token permissions for next agent
+
+**Why PAUSED:**
+- Cloudflare Email Routing API requires "Email Routing Addresses:Edit" and "Email Routing Rules:Edit" permissions
+- The existing API token only has `#zone_settings:read/edit`, `#zone:read`, `#dns_records:read/edit`
+- Need human to either configure in dashboard or update token permissions
+
+**What I learned:**
+- Cloudflare Email Routing is a separate permission scope from DNS/zone management
+- bjblabs.com zone status is "pending" (nameservers not yet switched, expected)
+- Zone was created 2026-03-17, account ID: 95f53250a929e155644f51e03fc7c910
+- API endpoint for email routing: GET /zones/{zone_id}/email/routing
+
+**Mistakes made:**
+- None
