@@ -360,3 +360,40 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #7 / Sub-issue #32
+
+**Worked on:** Issue #32 (openclaw-deployment) - Deploy OpenClaw on Mac Mini
+
+**What I did:**
+1. Extracted EC2 export tarball to `~/services/openclaw/` on Mac Mini
+2. Cloned OpenClaw repo (v2026.3.12) for ARM64 build context
+3. Built `openclaw:local` image with `OPENCLAW_INSTALL_BROWSER=1` (~4.5 GB, native ARM64)
+4. Built custom `openclaw-sandbox-browser:bookworm-slim` with CDP Host-header proxy (~1.5 GB)
+5. Created adapted `docker-compose.yml` and `.env` with Mac Mini paths
+6. Fixed config issues: controlUi origin fallback, disabled problematic extensions
+7. Both containers running and healthy on Mac Mini
+
+**What I learned:**
+- Docker Desktop on Mac Mini doesn't auto-start via SSH — `open -a Docker` fails. Use: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
+- OpenClaw HEAD (main) has plugin validation regression — "extension entry escapes package directory" for all built-in extensions. Pinned to v2026.3.12 which works correctly
+- Non-loopback gateway binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true` (new in recent versions)
+- Upstream sandbox-browser uses `socat` for CDP forwarding which doesn't rewrite Host headers — Chromium rejects Docker service names as Host. Custom CDP proxy (`cdp-host-proxy.py`) still needed
+- Sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` env var for Chromium to run in Docker
+- x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — deleted `.playwright-browsers/` and relied on image-built browsers instead
+- EC2 commit `4e916bb25` doesn't exist in upstream repo (was a local patch). Used v2026.3.12 tag instead
+- Docker Desktop on macOS handles uid mapping transparently via VirtioFS — no manual ownership changes needed
+
+**Codebase facts discovered:**
+- OpenClaw repo at `github.com/openclaw/openclaw` (public)
+- Dockerfile supports ARM64 natively with multi-stage build
+- `OPENCLAW_INSTALL_BROWSER=1` build arg installs Playwright Chromium during image build
+- gog binary can't be host-mounted (macOS binary ≠ Linux container) — need Linux ARM64 build or container install
+
+**Mistakes made:**
+- First tried building from HEAD — wasted time on plugin validation errors before discovering v2026.3.12 works
+- Initially forgot `OPENCLAW_BROWSER_NO_SANDBOX` env var — sandbox-browser healthcheck failed silently (just connection refused)
+
+**Status:** Containers healthy. Telegram bot has 409 conflict with EC2 (expected — both running same bot token). Gmail watcher disabled (gog binary missing). Next steps: issue #33 (Caddy + Tunnel wiring), #34 (Gmail webhook), #35 (setup-token).

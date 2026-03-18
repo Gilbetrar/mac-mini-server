@@ -79,13 +79,23 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Current API token lacks Access/Zero Trust permissions — setup requires dashboard
 - Not blocking Issue #7 (OpenClaw deployment)
 
-## OpenClaw EC2 Export (completed 2026-03-18)
+## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
 
-- Export tarball: `~/services/data/openclaw-export.tar.gz` (on Mac Mini, 304 MB)
+- **Version:** v2026.3.12 (pinned — HEAD has plugin validation regression)
+- **Containers:** `openclaw-gateway` (healthy), `openclaw-sandbox-browser` (healthy)
+- **Ports:** 18789 (gateway), 18790 (bridge), 8788 (webhook)
+- **Directory:** `~/services/openclaw/` (compose, .env, .openclaw, repo, sandbox-browser-custom)
+- **Build context:** `~/services/openclaw/repo/` (cloned from github.com/openclaw/openclaw)
+- Start Docker headlessly: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
+- Start OpenClaw: `cd ~/services/openclaw && docker compose up -d`
+- **Known issues:** Telegram bot conflicts with EC2 instance (409 getUpdates), gog binary missing (Gmail watcher disabled)
+- **Remaining:** Setup-token (Issue #35), Caddy+Tunnel wiring (#33), Gmail Pub/Sub (#34)
+- Full ARM64 notes: `docs/arm64-notes.md`
+
+## OpenClaw EC2 (still running)
+
 - EC2 SSH: `ssh ubuntu@100.90.248.10` (via Tailscale)
-- No Docker volumes — all bind-mounted from `~/.openclaw/` and `~/.config/gogcli/`
-- Docker images are locally built (not from registry) — must rebuild for ARM64 on Mac Mini
-- `gog` binary (v0.11.0) at `/usr/local/bin/gog` on EC2, bind-mounted into containers
+- Export tarball: `~/services/data/openclaw-export.tar.gz` (on Mac Mini, 304 MB)
 - Claude session keys empty — need regeneration via `openclaw setup-token` (Issue #35)
 - Full docs: `docs/ec2-export-manifest.md`, `docs/environment-variables.md`
 - No CI configured for this repo
@@ -98,7 +108,11 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - SSH non-interactive sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
 - Docker Desktop `credsStore: desktop` uses macOS keychain, fails in SSH sessions (keychain locked)
 - Docker Desktop installer: `/Applications/Docker.app/Contents/MacOS/install --accept-license --user ben`
+- Docker Desktop doesn't auto-start via SSH — use `com.docker.backend --start-docker-desktop`
 - cloudflared arg order matters: `cloudflared tunnel --config <path> run` (--config before run)
+- OpenClaw sandbox-browser needs custom CDP proxy for Host header rewriting (Chromium rejects Docker service names)
+- OpenClaw non-loopback binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
+- x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — delete `.playwright-browsers/`
 
 ## Repo Conventions
 
