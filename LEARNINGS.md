@@ -62,8 +62,10 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Nameservers switched to Cloudflare (`ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`) — zone **active**
 - All 14 Route 53 records replicated; hosted zone preserved as rollback (`Z0806990T0ZB8GBKDCD9`)
 - Route 53 is the domain registrar; update via `aws route53domains update-domain-nameservers`
-- Existing CloudFront services use CNAME records with `proxied: false`
+- `anki-renderer.bjblabs.com` CNAME updated to tunnel (proxied) — serving from Mac Mini
+- `legalpodcast.bjblabs.com` still on CloudFront (`proxied: false`) — pending Issue #9
 - Route 53 zone deletion eligible after 2026-03-31
+- Route 53 export: `docs/route53-export.json`, runbook: `docs/dns-cutover-runbook.md`
 
 ## Cloudflare Email Routing (LIVE as of 2026-03-18)
 
@@ -86,6 +88,15 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Add new services: (1) Caddy host-matched route, (2) Cloudflare CNAME DNS record
 - `openclaw.bjblabs.com` → `localhost:18789` (gateway, LIVE)
 - `openclaw.bjblabs.com/gmail-pubsub` → `localhost:8788` (gog watch serve, webhook)
+- `anki-renderer.bjblabs.com` → file_server from `~/services/anki-renderer/dist/` (LIVE)
+
+## Anki Renderer on Mac Mini (LIVE as of 2026-03-18)
+
+- Static Vite demo site served by Caddy `file_server`
+- Files: `~/services/anki-renderer/dist/` (built from anki-renderer repo `demo/`)
+- Rebuild: `cd ~/AI/Projects/anki-renderer && npm run build:wasm && npm run demo:build`
+- Deploy: `scp -r ~/AI/Projects/anki-renderer/demo/dist/* mac-mini:~/services/anki-renderer/dist/`
+- **Remaining:** CI/CD (#18), delete AWS stack (#19)
 
 ## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
 

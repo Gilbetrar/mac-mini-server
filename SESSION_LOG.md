@@ -494,3 +494,41 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None significant. Initially tried `--model` flag on `openclaw agent` which doesn't exist; used `openclaw models set` instead.
+
+---
+
+## Agent Session - Issue #8 (Sub-issues #16, #17)
+
+**Worked on:** Issue #8 - Migrate Anki Renderer + DNS cutover to Cloudflare (sub-issues anki-renderer#16 and #17)
+
+**What I did:**
+1. **anki-renderer#16 (Serve demo from Mac Mini):**
+   - Built WASM (`npm run build:wasm`) and demo (`npm run demo:build`) in anki-renderer repo
+   - Created `~/services/anki-renderer/dist/` on Mac Mini
+   - Copied built demo files via `scp`
+   - Added Caddy route: `@anki_renderer host anki-renderer.bjblabs.com` → `file_server` from dist/
+   - Validated and reloaded Caddyfile
+   - Verified via `curl -s http://localhost:80 -H 'Host: anki-renderer.bjblabs.com'` — HTML returned
+   - Closed anki-renderer#16
+
+2. **anki-renderer#17 (DNS cutover):**
+   - Nameserver cutover was already done (2026-03-17) — just needed CNAME update + docs
+   - Updated CNAME for `anki-renderer.bjblabs.com` from CloudFront to tunnel via Cloudflare API
+   - Verified `curl -s https://anki-renderer.bjblabs.com` returns HTTP 200
+   - Exported Route 53 records to `docs/route53-export.json` (16 records)
+   - Wrote `docs/dns-cutover-runbook.md` with full history and rollback procedure
+   - Closed anki-renderer#17
+
+**What I learned:**
+- cloudflared catch-all ingress means no cloudflared config changes needed for new services — just Caddy route + CNAME
+- `scp -r dir/ remote:target/` fails if target doesn't exist; must `mkdir -p` first, then `scp -r dir/* remote:target/`
+- Cloudflare DNS PATCH API to update CNAME: set `content` to tunnel CNAME and `proxied: true`
+
+**Codebase facts discovered:**
+- anki-renderer demo needs both `build:wasm` (Rust→WASM) and `demo:build` (Vite) steps
+- Demo dist includes: index.html, assets/ (JS/CSS), lib/, pkg/ (WASM)
+- Issue #6 (Zero Trust) is deferred per owner — not urgent until browser-facing service deployed
+- Issue #7 sub-issue #36 (EC2 decommission) time-blocked until 2026-03-25
+
+**Mistakes made:**
+- None.
