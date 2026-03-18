@@ -277,3 +277,53 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #5 (COMPLETED, 2026-03-18)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (human completed dashboard steps)
+
+**What I did:**
+- Guided Ben through Cloudflare Dashboard Email Routing setup
+- Advised using `podcast@bjblabs.com` as initial address (real use case from legal podcast)
+- Confirmed deleting old AWS SES MX record was safe (with caveat about legal podcast pipeline)
+- Verified MX records now point to Cloudflare (`route1/2/3.mx.cloudflare.net`)
+- Verified both routing rules (podcast@ and catch-all) still active via API
+- Ben sent test email — confirmed delivery to Gmail
+- Closed issue #5 on GitHub
+- Updated LEARNINGS.md with completion status and SES impact note
+- Cleaned up HANDOFF.md
+
+**What I learned:**
+- Legal podcast project depends on SES email receiving: email → SES → S3 → Lambda (extracts DOCX → generates podcast)
+- Deleting SES MX record breaks that pipeline — must be addressed in Issue #9
+- Cloudflare Email Routing setup wizard requires at least one custom address to get started
+
+**Mistakes made:**
+- None
+
+---
+
+## Agent Session - Issue #6
+
+**Worked on:** Issue #6 - Cloudflare Zero Trust
+
+**What I did:**
+- Created comprehensive Zero Trust setup documentation at `docs/zero-trust-setup.md`
+- Copied documentation to Mac Mini at `~/services/config/zero-trust-setup.md`
+- Wrote HANDOFF.md with 3 dashboard steps for Ben (enable free plan, verify OTP, optionally update API token)
+- Signaled PAUSED — dashboard steps require human action
+
+**What I learned:**
+- Current Cloudflare API token does NOT have Access/Zero Trust permissions (returns 403)
+- Zero Trust enrollment and identity provider setup can only be done via dashboard (not API)
+- Issue scope was simplified: OTP instead of Google OAuth, not urgent until first browser-facing service
+- Issue #6 is NOT a dependency for #7 (OpenClaw) per scope clarification comment
+
+**Codebase facts discovered:**
+- HANDOFF.md is gitignored (mentioned in LEARNINGS.md)
+- Project follows pattern of writing docs to both repo (`docs/`) and Mac Mini (`~/services/config/`)
+
+**Mistakes made:**
+- None
