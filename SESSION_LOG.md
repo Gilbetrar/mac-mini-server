@@ -532,3 +532,31 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None.
+
+---
+
+## Agent Session - Issue #8 (sub-issue #18)
+
+**Worked on:** Issue #8 - Migrate Anki Renderer, sub-issue anki-renderer#18 - Update CI/CD for Mac Mini deploy
+
+**What I did:**
+- Created a Python deploy webhook server (`scripts/deploy-webhook.py`) that receives tarball POSTs with bearer token auth, validates, and extracts to the deploy directory
+- Added Caddy route for `/_deploy` path on `anki-renderer.bjblabs.com` → webhook server on port 9001
+- Created launchd plist for webhook persistence across reboots
+- Updated GitHub Actions deploy.yml in anki-renderer repo: replaces CDK deploy with tarball POST to webhook
+- Set `DEPLOY_WEBHOOK_SECRET` GitHub secret on anki-renderer repo
+- Deployed and started webhook on Mac Mini, verified end-to-end pipeline works
+
+**What I learned:**
+- The Mac Mini has no Rust/wasm-pack installed — builds must happen in GitHub Actions, not locally
+- Python 3.9.6 (system Python) works fine for a simple HTTP webhook server
+- The webhook approach is ideal for Mac Mini deploys since it has no public SSH and Zero Trust isn't set up yet
+- GitHub auto-closes issues from commit messages (`Closes Gilbetrar/anki-renderer#18`)
+
+**Codebase facts discovered:**
+- anki-renderer demo dist is ~400KB tarball — well within webhook POST limits
+- Last deploy to AWS CDK was Jan 2026 — infrastructure has been stable
+
+**Mistakes made:**
+- Test deploy replaced real demo files — always test with a non-destructive method or have a restore plan ready
+- SSH command expansion gotcha: `$(cat ...)` in `ssh mac-mini "..."` expands locally with double quotes, need single quotes for remote expansion

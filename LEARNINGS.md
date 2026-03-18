@@ -86,6 +86,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Internet → Cloudflare (proxied CNAME) → cloudflared tunnel → Caddy (:80) → service
 - cloudflared has single catch-all ingress rule → Caddy handles host-based routing
 - Add new services: (1) Caddy host-matched route, (2) Cloudflare CNAME DNS record
+- Deploy webhooks: Python HTTP server on localhost, Caddy proxies `/_deploy` path to it, GitHub Actions POSTs tarball
 - `openclaw.bjblabs.com` → `localhost:18789` (gateway, LIVE)
 - `openclaw.bjblabs.com/gmail-pubsub` → `localhost:8788` (gog watch serve, webhook)
 - `anki-renderer.bjblabs.com` → file_server from `~/services/anki-renderer/dist/` (LIVE)
@@ -94,9 +95,12 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 
 - Static Vite demo site served by Caddy `file_server`
 - Files: `~/services/anki-renderer/dist/` (built from anki-renderer repo `demo/`)
-- Rebuild: `cd ~/AI/Projects/anki-renderer && npm run build:wasm && npm run demo:build`
-- Deploy: `scp -r ~/AI/Projects/anki-renderer/demo/dist/* mac-mini:~/services/anki-renderer/dist/`
-- **Remaining:** CI/CD (#18), delete AWS stack (#19)
+- **CI/CD:** Push to main → CI → deploy workflow → tarball POST to webhook → extracted to dist/
+- **Deploy webhook:** `~/services/anki-renderer/deploy-webhook.py` on port 9001 (launchd: `com.anki-renderer.deploy-webhook`)
+- **Secret:** `~/services/anki-renderer/.deploy-secret` (600 perms), mirrored as `DEPLOY_WEBHOOK_SECRET` GitHub secret
+- **Caddy route:** `/_deploy` path → reverse_proxy localhost:9001
+- **Manual deploy:** `scp -r ~/AI/Projects/anki-renderer/demo/dist/* mac-mini:~/services/anki-renderer/dist/`
+- **Remaining:** delete AWS stack (#19)
 
 ## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
 
