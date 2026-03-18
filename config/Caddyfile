@@ -13,10 +13,16 @@
 }
 
 # OpenClaw gateway — control UI, API, and webhooks
-# Webhook-specific routing (port 8788) handled in issue #34 if needed
 :80 {
 	@openclaw host openclaw.bjblabs.com
 	handle @openclaw {
+		# Gmail Pub/Sub webhook — routed to gog watch serve on port 8788
+		@gmail_webhook path /gmail-pubsub*
+		handle @gmail_webhook {
+			reverse_proxy localhost:8788
+		}
+
+		# Everything else — gateway UI and API
 		reverse_proxy localhost:18789
 	}
 
