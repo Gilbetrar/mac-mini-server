@@ -232,3 +232,48 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #5 (Iteration 6)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (handoff verification)
+
+**What I did:**
+- Verified routing rules still exist and are enabled via API (podcast@ and catch-all both active)
+- Confirmed MX records still point to AWS SES (`inbound-smtp.us-east-1.amazonaws.com`) — Email Routing not yet enabled
+- Confirmed API token cannot access `/email/routing`, `/email/routing/enable`, or `/email/routing/dns` endpoints (auth error)
+- Updated HANDOFF.md with current verification state
+- Signaled PAUSED for human dashboard action
+
+**What I learned:**
+- The Cloudflare API token has granular permissions — `/email/routing/rules` works but settings/enable/dns endpoints don't
+- MX record check (`dig MX bjblabs.com +short`) is a reliable way to verify if Email Routing is enabled
+- HANDOFF.md already existed from a previous session — this is the second time this handoff has been surfaced
+
+**Codebase facts discovered:**
+- HANDOFF.md is gitignored (per LEARNINGS.md)
+- Previous agents already did all API-accessible work for issue #5
+
+**Mistakes made:**
+- None — this was a straightforward verification and handoff update
+
+---
+
+## Agent Session - Issue #5 (Handoff Re-check)
+
+**Worked on:** Issue #5 - Cloudflare Email Routing (third handoff attempt)
+
+**What I learned:**
+- Email Routing still not enabled — MX records still point to AWS SES (`inbound-smtp.us-east-1.amazonaws.com`)
+- The two API-created routing rules (podcast@ and catch-all) are still present and enabled
+- The `/zones/{zone_id}/email/routing` and `/zones/{zone_id}/email/routing/enable` endpoints both return auth errors with the current token
+- This is the third agent session surfacing the same handoff — the human hasn't completed the dashboard steps yet
+- Re-created HANDOFF.md with clear step-by-step instructions
+
+**Codebase facts discovered:**
+- HANDOFF.md was absent (cleaned up or never committed), so a new one was needed
+- All prior API work from issue #5 is still intact
+
+**Mistakes made:**
+- None
