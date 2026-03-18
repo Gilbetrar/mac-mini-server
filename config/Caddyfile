@@ -1,8 +1,8 @@
 # Caddyfile — Mac Mini reverse proxy
 # Managed by: mac-mini-server repo
 #
-# This is the placeholder config. Service-specific routes
-# will be added as services are migrated (issues #7-#9).
+# Caddy listens on :80, cloudflared routes tunnel traffic here.
+# Each service gets a host-matched block.
 {
 	log {
 		output file /Users/ben/services/data/caddy/access.log {
@@ -12,6 +12,16 @@
 	}
 }
 
+# OpenClaw gateway — control UI, API, and webhooks
+# Webhook-specific routing (port 8788) handled in issue #34 if needed
 :80 {
-	respond "Mac Mini server is running." 200
+	@openclaw host openclaw.bjblabs.com
+	handle @openclaw {
+		reverse_proxy localhost:18789
+	}
+
+	# Default — no matching service
+	handle {
+		respond "Mac Mini server is running." 200
+	}
 }
