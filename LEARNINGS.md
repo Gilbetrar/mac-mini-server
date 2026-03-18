@@ -54,6 +54,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Zone ID: `9d3c311fe7bd41ecab3830a57a3a51a6`, Account ID: `95f53250a929e155644f51e03fc7c910`
 - Cloudflare NS (for cutover): `ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`
 - DNS: `test.bjblabs.com` CNAME → tunnel (ready after nameserver cutover)
+- Tunnels can be created via API (`POST /accounts/{acct}/cfd_tunnel`) — no `cloudflared tunnel login` needed
 - Check status: `curl -s ... /cfd_tunnel/<id>` with bearer token (see scripts)
 
 ## DNS Cutover (2026-03-17)
@@ -67,14 +68,17 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Existing services (anki-renderer, legalpodcast) still serve from CloudFront via Cloudflare DNS — CNAME records with `proxied: false`
 - Route 53 zone deletion eligible after 2026-03-31 (2-week stability window)
 
-## Cloudflare Email Routing
+## Cloudflare Email Routing (LIVE as of 2026-03-18)
 
+- **Status:** Enabled and tested — emails forwarding to Gmail
+- MX records point to Cloudflare (`route1/2/3.mx.cloudflare.net`)
+- Rules: podcast@ and catch-all both forward to `ben.bateman.email@gmail.com`
 - Rules API works with existing token: `/zones/{zone_id}/email/routing/rules`
 - Catch-all uses special endpoint: `/zones/{zone_id}/email/routing/rules/catch_all`
 - Enabling the feature and managing destination addresses require account-level permissions (dashboard only with current token)
-- Rules: podcast@ and catch-all both forward to `ben.bateman.email@gmail.com`
+- Verify: `dig MX bjblabs.com +short` (should show Cloudflare MX servers)
 - Documentation: `docs/email-routing.md` (repo), `~/services/config/email-routing.md` (Mac Mini)
-- Email Routing requires zone to be **active** (nameservers on Cloudflare) before it can be enabled
+- **Impact:** Old AWS SES MX record deleted — legal podcast email pipeline (SES → S3 → Lambda) is broken until Issue #9 migrates it
 
 ## Gotchas
 
@@ -92,3 +96,4 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Issues are numbered sequentially and should be worked in order
 - Direct commits to `main` (no feature branches for autonomous work)
 - Commit messages reference issue numbers: `feat: ... Part of #N` or `Closes #N`
+- HANDOFF.md is gitignored — transient file for human-agent handoffs when interactive steps are needed
