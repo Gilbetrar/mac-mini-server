@@ -98,15 +98,17 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Start OpenClaw: `cd ~/services/openclaw && docker compose up -d`
 - **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog` → `/usr/local/bin/gog:ro`
 - **Gmail watcher:** LIVE — gog watch serve on 0.0.0.0:8788, Pub/Sub pushes to openclaw.bjblabs.com/gmail-pubsub
-- **Known issues:** Telegram bot conflicts with EC2 instance (409 getUpdates)
-- **Remaining:** Setup-token (Issue #35), Decommission EC2 (#36)
+- **Claude auth:** Token in `auth-profiles.json` (not env vars). All tiers verified: Opus (default), Sonnet (fallback #1), Haiku (fallback #2)
+- **Remaining:** Decommission EC2 (#36) — Phase 2 after 2026-03-25
 - Full ARM64 notes: `docs/arm64-notes.md`
 
-## OpenClaw EC2 (still running)
+## OpenClaw EC2 (STOPPED as of 2026-03-18)
 
-- EC2 SSH: `ssh ubuntu@100.90.248.10` (via Tailscale)
+- **Instance:** `i-0cc417431630fdfc5` (t3.medium) — STOPPED, not terminated
+- **EBS:** `vol-049b363e353fd31f9`, **SG:** `sg-084a0cd9295dfe466` (openclaw-sg)
+- Restart if needed: `aws ec2 start-instances --instance-ids i-0cc417431630fdfc5`
+- Phase 2 (terminate + cleanup): after 2026-03-25 — see HANDOFF.md or issue #36 comment
 - Export tarball: `~/services/data/openclaw-export.tar.gz` (on Mac Mini, 304 MB)
-- Claude session keys empty — need regeneration via `openclaw setup-token` (Issue #35)
 - Full docs: `docs/ec2-export-manifest.md`, `docs/environment-variables.md`
 - No CI configured for this repo
 

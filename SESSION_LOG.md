@@ -461,3 +461,36 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - First attempt to edit docker-compose via Python string replace failed due to shell escaping of `${}` — used `sed` instead
+
+---
+
+## Agent Session - Issue #7 (Sub-issues #35 & #36 Phase 1)
+
+**Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issues #35 and #36)
+
+**What I did:**
+- Verified Claude auth token in auth-profiles.json (from EC2 export) works for all three tiers
+- Tested Opus, Sonnet, and Haiku via `openclaw agent` CLI — all responded successfully
+- Added Haiku as fallback #2 (was only Opus default + Sonnet fallback)
+- Removed empty legacy env vars (CLAUDE_AI_SESSION_KEY, CLAUDE_WEB_SESSION_KEY, CLAUDE_WEB_COOKIE) from .env
+- Created docs/claude-setup-token.md with regeneration instructions
+- Deployed docs to Mac Mini at ~/services/config/claude-setup-token.md
+- Sub-issue #35 was already closed (by previous agent)
+- Stopped EC2 instance i-0cc417431630fdfc5 (Phase 1 of #36)
+- Commented Phase 1 completion on issue #36 with all resource IDs for Phase 2 cleanup
+- Wrote HANDOFF.md for Phase 2 (terminate after 2026-03-25)
+
+**What I learned:**
+- OpenClaw auth uses auth-profiles.json, not environment variables. The CLAUDE_* env vars were legacy/empty.
+- `openclaw models auth add` / `paste-token` / `setup-token` are the three ways to configure auth
+- `openclaw agent --agent main --message "..." --json` is the way to test model responses via CLI
+- `openclaw models set` changes default; `openclaw models fallbacks add` adds fallbacks
+- The EC2 instance ID is i-0cc417431630fdfc5, EBS vol-049b363e353fd31f9, SG sg-084a0cd9295dfe466
+
+**Codebase facts discovered:**
+- HANDOFF.md is gitignored (per repo conventions)
+- Sub-issue #35 was already closed before this session started
+- The sandbox-browser dbus/Vulkan errors in logs are cosmetic (expected in headless Docker)
+
+**Mistakes made:**
+- None significant. Initially tried `--model` flag on `openclaw agent` which doesn't exist; used `openclaw models set` instead.
