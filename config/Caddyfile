@@ -26,9 +26,16 @@
 		reverse_proxy localhost:18789
 	}
 
-	# Anki Renderer demo — static files
+	# Anki Renderer demo — static files + deploy webhook
 	@anki_renderer host anki-renderer.bjblabs.com
 	handle @anki_renderer {
+		# Deploy webhook — receives build artifacts from GitHub Actions
+		@deploy path /_deploy
+		handle @deploy {
+			reverse_proxy localhost:9001
+		}
+
+		# Static demo site
 		root * /Users/ben/services/anki-renderer/dist
 		file_server
 	}
