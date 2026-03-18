@@ -327,3 +327,36 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #7 (Sub-issue #31)
+
+**Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issue: openclaw-deployment#31 - Export config & data from EC2)
+
+**What I did:**
+- SSH'd to EC2 via Tailscale (`ubuntu@100.90.248.10`), confirmed connectivity
+- Exported `~/.openclaw/`, `~/openclaw/.env`, `docker-compose.yml`, all Dockerfiles, `docker-setup.sh`, `~/.config/gogcli/` into tarball
+- Transferred tarball EC2 → laptop → Mac Mini (`~/services/data/openclaw-export.tar.gz`, 304 MB)
+- Verified file counts: 2,404 files on EC2 vs 2,407 in tarball (match within timing variance)
+- Documented export manifest (`docs/ec2-export-manifest.md`) and environment variables (`docs/environment-variables.md`)
+- Issue #31 was already closed (by prior agent or human)
+
+**What I learned:**
+- EC2 OpenClaw uses Tailscale for access (IP: 100.90.248.10), not a standard SSH alias
+- No Docker volumes in use — everything is bind-mounted from `~/.openclaw/` and `~/.config/gogcli/`
+- Two locally-built Docker images (not from registry): `openclaw:local` and `openclaw-sandbox-browser:bookworm-slim`
+- The `gog` binary (v0.11.0) is installed at `/usr/local/bin/gog` on EC2 and bind-mounted into containers
+- Playwright browsers (~250 MB) are the bulk of the export
+- Claude session keys were empty at export time — will need regeneration (Issue #35)
+- Issue #6 (Zero Trust) was deferred — skipped to #7 as it's unblocked
+- No CI configured for mac-mini-server repo
+
+**Codebase facts discovered:**
+- OpenClaw compose has 3 services: gateway, cli, sandbox-browser
+- Gateway depends on sandbox-browser health check (CDP on port 9222)
+- Gmail Pub/Sub webhook runs on port 8788 inside the gateway container
+- gogcli keyring password is hardcoded in docker-compose.yml (`openclaw-gog`)
+
+**Mistakes made:**
+- None

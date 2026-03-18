@@ -59,26 +59,36 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 
 ## DNS Cutover (2026-03-17)
 
-- Nameservers switched from Route 53 to Cloudflare: `ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`
-- Zone status: **active**
-- All 14 Route 53 records replicated in Cloudflare before cutover
-- Route 53 hosted zone (`Z0806990T0ZB8GBKDCD9`) preserved as rollback
-- Nameserver update done via AWS CLI: `aws route53domains update-domain-nameservers`
-- Route 53 is also the domain registrar (not just DNS hosting)
-- Existing services (anki-renderer, legalpodcast) still serve from CloudFront via Cloudflare DNS — CNAME records with `proxied: false`
-- Route 53 zone deletion eligible after 2026-03-31 (2-week stability window)
+- Nameservers switched to Cloudflare (`ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`) — zone **active**
+- All 14 Route 53 records replicated; hosted zone preserved as rollback (`Z0806990T0ZB8GBKDCD9`)
+- Route 53 is the domain registrar; update via `aws route53domains update-domain-nameservers`
+- Existing CloudFront services use CNAME records with `proxied: false`
+- Route 53 zone deletion eligible after 2026-03-31
 
 ## Cloudflare Email Routing (LIVE as of 2026-03-18)
 
-- **Status:** Enabled and tested — emails forwarding to Gmail
-- MX records point to Cloudflare (`route1/2/3.mx.cloudflare.net`)
-- Rules: podcast@ and catch-all both forward to `ben.bateman.email@gmail.com`
-- Rules API works with existing token: `/zones/{zone_id}/email/routing/rules`
-- Catch-all uses special endpoint: `/zones/{zone_id}/email/routing/rules/catch_all`
-- Enabling the feature and managing destination addresses require account-level permissions (dashboard only with current token)
-- Verify: `dig MX bjblabs.com +short` (should show Cloudflare MX servers)
-- Documentation: `docs/email-routing.md` (repo), `~/services/config/email-routing.md` (Mac Mini)
-- **Impact:** Old AWS SES MX record deleted — legal podcast email pipeline (SES → S3 → Lambda) is broken until Issue #9 migrates it
+- Enabled and tested — podcast@ and catch-all forward to `ben.bateman.email@gmail.com`
+- MX: Cloudflare (`route1/2/3.mx.cloudflare.net`); verify with `dig MX bjblabs.com +short`
+- Rules API: `/zones/{zone_id}/email/routing/rules` (catch-all: `.../rules/catch_all`)
+- Feature enable/destination addresses require dashboard (account-level perms)
+- **Impact:** Old SES MX deleted — legal podcast email pipeline broken until Issue #9
+
+## Cloudflare Zero Trust (NOT YET ENABLED)
+
+- Documentation: `docs/zero-trust-setup.md` (repo), `~/services/config/zero-trust-setup.md` (Mac Mini)
+- Current API token lacks Access/Zero Trust permissions — setup requires dashboard
+- Not blocking Issue #7 (OpenClaw deployment)
+
+## OpenClaw EC2 Export (completed 2026-03-18)
+
+- Export tarball: `~/services/data/openclaw-export.tar.gz` (on Mac Mini, 304 MB)
+- EC2 SSH: `ssh ubuntu@100.90.248.10` (via Tailscale)
+- No Docker volumes — all bind-mounted from `~/.openclaw/` and `~/.config/gogcli/`
+- Docker images are locally built (not from registry) — must rebuild for ARM64 on Mac Mini
+- `gog` binary (v0.11.0) at `/usr/local/bin/gog` on EC2, bind-mounted into containers
+- Claude session keys empty — need regeneration via `openclaw setup-token` (Issue #35)
+- Full docs: `docs/ec2-export-manifest.md`, `docs/environment-variables.md`
+- No CI configured for this repo
 
 ## Gotchas
 
@@ -97,3 +107,4 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Direct commits to `main` (no feature branches for autonomous work)
 - Commit messages reference issue numbers: `feat: ... Part of #N` or `Closes #N`
 - HANDOFF.md is gitignored — transient file for human-agent handoffs when interactive steps are needed
+- Documentation deployed to both `docs/` (repo) and `~/services/config/` (Mac Mini)
