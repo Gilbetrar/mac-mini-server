@@ -397,3 +397,30 @@ Raw session history for the mac-mini-server project.
 - Initially forgot `OPENCLAW_BROWSER_NO_SANDBOX` env var — sandbox-browser healthcheck failed silently (just connection refused)
 
 **Status:** Containers healthy. Telegram bot has 409 conflict with EC2 (expected — both running same bot token). Gmail watcher disabled (gog binary missing). Next steps: issue #33 (Caddy + Tunnel wiring), #34 (Gmail webhook), #35 (setup-token).
+
+---
+
+## Agent Session - Issue #7 (Sub-issue #33)
+
+**Worked on:** openclaw-deployment#33 - Wire OpenClaw through Caddy + Cloudflare Tunnel
+
+**What I did:**
+1. Updated Caddyfile with host-matched route: `openclaw.bjblabs.com` → `localhost:18789` (gateway)
+2. Created DNS CNAME in Cloudflare: `openclaw.bjblabs.com` → tunnel (`e4978b52-...cfargotunnel.com`), proxied
+3. Deployed Caddyfile to Mac Mini, restarted Caddy and cloudflared
+4. Verified end-to-end: `https://openclaw.bjblabs.com/healthz` returns `{"ok":true,"status":"live"}`
+
+**What I learned:**
+- cloudflared config doesn't need per-service ingress rules — the catch-all route sends everything to Caddy, which handles host-based routing
+- Caddy `@matcher host` syntax works well for multi-service routing on a single `:80` listener
+- The cloudflared config already had the right architecture (single catch-all to Caddy)
+
+**Codebase facts discovered:**
+- `launchctl load/unload/bootstrap/print` all fail via SSH with exit 134 or "Domain does not support specified action" — launchd needs an interactive login session on modern macOS
+- Services started via `nohup` work fine but won't auto-restart; LaunchAgent plists exist and will work on next interactive login/reboot
+- The OpenClaw gateway serves its control UI + `/healthz` on port 18789; webhook port 8788 is separate
+
+**Mistakes made:**
+- None significant. Initial `caddy reload` failed because Caddy wasn't running (had stopped since previous session). Needed to start it fresh.
+
+**Status:** Issue #33 closed. `openclaw.bjblabs.com` fully wired. Next: #34 (Gmail Pub/Sub webhook), #35 (setup-token), #36 (decommission EC2).

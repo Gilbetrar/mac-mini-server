@@ -79,6 +79,13 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - Current API token lacks Access/Zero Trust permissions — setup requires dashboard
 - Not blocking Issue #7 (OpenClaw deployment)
 
+## Service Routing Architecture
+
+- Internet → Cloudflare (proxied CNAME) → cloudflared tunnel → Caddy (:80) → service
+- cloudflared has single catch-all ingress rule → Caddy handles host-based routing
+- Add new services: (1) Caddy host-matched route, (2) Cloudflare CNAME DNS record
+- `openclaw.bjblabs.com` → `localhost:18789` (gateway, LIVE)
+
 ## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
 
 - **Version:** v2026.3.12 (pinned — HEAD has plugin validation regression)
@@ -113,6 +120,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - OpenClaw sandbox-browser needs custom CDP proxy for Host header rewriting (Chromium rejects Docker service names)
 - OpenClaw non-loopback binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
 - x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — delete `.playwright-browsers/`
+- `launchctl load/unload/bootstrap` fails via SSH (exit 134) — launchd needs interactive login session. Use `nohup <cmd> &` over SSH; LaunchAgents will auto-start on next GUI login/reboot
 
 ## Repo Conventions
 
