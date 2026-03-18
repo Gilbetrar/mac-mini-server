@@ -560,3 +560,34 @@ Raw session history for the mac-mini-server project.
 **Mistakes made:**
 - Test deploy replaced real demo files — always test with a non-destructive method or have a restore plan ready
 - SSH command expansion gotcha: `$(cat ...)` in `ssh mac-mini "..."` expands locally with double quotes, need single quotes for remote expansion
+
+---
+
+## Agent Session - Issue #8 (sub-issue anki-renderer #19)
+
+**Worked on:** anki-renderer #19 - Delete AnkiRendererDemoStack
+
+**What I did:**
+- Surveyed all 8 open issues — most are time-gated or dependency-blocked
+- Issue #36 (EC2 decommission): gated until 2026-03-25
+- Issue #19 (delete CDK stack): ready but needs Ben's approval
+- Verified demo works on Mac Mini (HTTP 200, correct content)
+- Verified DNS is on Cloudflare nameservers
+- Inventoried all 15 AWS resources in the stack
+- Found leftover `github-actions-anki-renderer` IAM role (not in CDK stack)
+- Found stale `AWS_ROLE_ARN` GitHub secret to remove
+- Confirmed OIDC provider should NOT be deleted (may be used by other repos)
+- Wrote HANDOFF.md with full cleanup instructions for Ben
+
+**What I learned:**
+- CDK stack has auto-delete bucket configuration, so `cdk destroy` should handle emptying S3
+- The OIDC provider is shared across repos — don't delete when cleaning up one repo's resources
+- Deploy workflow already fully migrated to Mac Mini webhook — no AWS references remain
+
+**Codebase facts discovered:**
+- Stack has 15 resources: S3, CloudFront, ACM cert, Route 53 record, 2 Lambdas, 3 IAM roles/policies, OAC, bucket policy, CDK metadata
+- `github-actions-anki-renderer` IAM role exists outside the stack
+- Only `AWS_ROLE_ARN` is stale; `DEPLOY_WEBHOOK_SECRET` is for Mac Mini deploy
+
+**Mistakes made:**
+- None this session
