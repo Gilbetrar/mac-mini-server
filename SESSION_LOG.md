@@ -424,3 +424,40 @@ Raw session history for the mac-mini-server project.
 - None significant. Initial `caddy reload` failed because Caddy wasn't running (had stopped since previous session). Needed to start it fresh.
 
 **Status:** Issue #33 closed. `openclaw.bjblabs.com` fully wired. Next: #34 (Gmail Pub/Sub webhook), #35 (setup-token), #36 (decommission EC2).
+
+---
+
+## Agent Session - Issue #7 (Sub-issue #34)
+
+**Worked on:** Issue #34 - Reconfigure Gmail Pub/Sub webhook
+
+**What I did:**
+1. Discovered `gog` binary (gogcli) was missing in Docker container — source of "Gmail watcher disabled" error
+2. Found gog is a Go binary from github.com/steipete/gogcli — downloaded ARM64 Linux v0.12.0
+3. Stored binary at `~/services/openclaw/bin/gog` on Mac Mini
+4. Added volume mount in docker-compose.yml: `./bin/gog:/usr/local/bin/gog:ro`
+5. Updated `hooks.gmail.serve.bind` from `127.0.0.1` to `0.0.0.0` in openclaw.json (needed for Docker bridge networking)
+6. Added Caddy route: `/gmail-pubsub*` on `openclaw.bjblabs.com` → `localhost:8788`
+7. Updated Pub/Sub subscription push endpoint via gcloud on EC2 (gcloud not available locally/Mac Mini)
+8. Old endpoint: `https://ip-172-31-31-65.tailde5b32.ts.net/gmail-pubsub?token=...`
+9. New endpoint: `https://openclaw.bjblabs.com/gmail-pubsub?token=...`
+10. Verified: stale Pub/Sub notifications immediately started arriving through the new path
+
+**What I learned:**
+- gog binary is from steipete/gogcli (GitHub), statically linked Go binary with linux_arm64 releases
+- Docker bridge networking: 127.0.0.1 bind inside container is unreachable from host port mapping — must use 0.0.0.0
+- gog serve `--path /` makes it handle all paths (default is `/gmail-pubsub`)
+- OpenClaw's ensureDependency only auto-installs via Homebrew on macOS — Docker containers need manual binary installation
+- gcloud CLI is on EC2 but not Mac Mini — can use EC2 to manage GCP Pub/Sub subscriptions
+- The Pub/Sub subscription was using Tailscale hostname as push endpoint
+
+**Codebase facts discovered:**
+- OpenClaw Gmail watcher: gateway auto-starts `gog gmail watch serve` + `gog gmail watch start` (via startGmailWatch)
+- gog watch serve is the HTTP server receiving Pub/Sub push notifications
+- gog watch start tells Gmail API to push to the Pub/Sub topic
+- The watcher auto-renews every 60 minutes (configurable via renewEveryMinutes)
+- GCP project: `vast-nectar-487617-j6`, subscription: `gog-gmail-watch-push`
+- OAuth credentials (installed/desktop type) at `.openclaw/gcloud/credentials.json`
+
+**Mistakes made:**
+- First attempt to edit docker-compose via Python string replace failed due to shell escaping of `${}` — used `sed` instead

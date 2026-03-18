@@ -85,6 +85,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - cloudflared has single catch-all ingress rule → Caddy handles host-based routing
 - Add new services: (1) Caddy host-matched route, (2) Cloudflare CNAME DNS record
 - `openclaw.bjblabs.com` → `localhost:18789` (gateway, LIVE)
+- `openclaw.bjblabs.com/gmail-pubsub` → `localhost:8788` (gog watch serve, webhook)
 
 ## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
 
@@ -95,8 +96,10 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - **Build context:** `~/services/openclaw/repo/` (cloned from github.com/openclaw/openclaw)
 - Start Docker headlessly: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
 - Start OpenClaw: `cd ~/services/openclaw && docker compose up -d`
-- **Known issues:** Telegram bot conflicts with EC2 instance (409 getUpdates), gog binary missing (Gmail watcher disabled)
-- **Remaining:** Setup-token (Issue #35), Caddy+Tunnel wiring (#33), Gmail Pub/Sub (#34)
+- **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog` → `/usr/local/bin/gog:ro`
+- **Gmail watcher:** LIVE — gog watch serve on 0.0.0.0:8788, Pub/Sub pushes to openclaw.bjblabs.com/gmail-pubsub
+- **Known issues:** Telegram bot conflicts with EC2 instance (409 getUpdates)
+- **Remaining:** Setup-token (Issue #35), Decommission EC2 (#36)
 - Full ARM64 notes: `docs/arm64-notes.md`
 
 ## OpenClaw EC2 (still running)
@@ -119,6 +122,7 @@ The Mac Mini is on the local network, accessible via `ssh mac-mini`.
 - cloudflared arg order matters: `cloudflared tunnel --config <path> run` (--config before run)
 - OpenClaw sandbox-browser needs custom CDP proxy for Host header rewriting (Chromium rejects Docker service names)
 - OpenClaw non-loopback binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
+- Docker bridge networking: services bound to 127.0.0.1 inside container are unreachable via port mapping — use 0.0.0.0
 - x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — delete `.playwright-browsers/`
 - `launchctl load/unload/bootstrap` fails via SSH (exit 134) — launchd needs interactive login session. Use `nohup <cmd> &` over SSH; LaunchAgents will auto-start on next GUI login/reboot
 
