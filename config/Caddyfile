@@ -26,6 +26,13 @@
 		reverse_proxy localhost:18789
 	}
 
+	# Anki Renderer demo — static files
+	@anki_renderer host anki-renderer.bjblabs.com
+	handle @anki_renderer {
+		root * /Users/ben/services/anki-renderer/dist
+		file_server
+	}
+
 	# Default — no matching service
 	handle {
 		respond "Mac Mini server is running." 200
