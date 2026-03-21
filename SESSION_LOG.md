@@ -458,3 +458,25 @@ Raw session history for the mac-mini-server project.
 - The API token permission note in docs was accurate — it does have Access permissions now (the "Optional" note about adding them must have been completed)
 
 **Mistakes made:** None
+
+---
+
+## Agent Session - Issue #16 (continued)
+
+**Worked on:** Issue #16 - Secure NocoDB with Cloudflare Zero Trust (service token completion)
+
+**What I did:**
+- Used Playwright to navigate Cloudflare dashboard and create service token "NocoDB MCP" (non-expiring)
+- Saved CF-Access-Client-Id and CF-Access-Client-Secret to `~/services/nocodb/.cf-service-token` on Mac Mini
+- Added non_identity (Service Auth) policy to NocoDB Access app via API
+- Verified: service token returns 200, unauthenticated returns 302
+- Updated docs, cleaned up HANDOFF.md, closed issue #16
+
+**What I learned:**
+- Playwright can handle Cloudflare dashboard interactions after user authenticates (passkey)
+- Service token creation requires dashboard (API token lacks permission), but Service Auth policies can be added via API
+- Service token ID is in the URL after creation: `/service-tokens/<uuid>`
+- The new Cloudflare dashboard URL pattern for apps doesn't use the app UUID in `/access-controls/apps/<id>` — that returns 404
+
+**Mistakes made:**
+- Tried to navigate directly to app edit page via UUID — got 404. Used API instead for the policy.
