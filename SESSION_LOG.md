@@ -416,3 +416,23 @@ Raw session history for the mac-mini-server project.
 - NocoDB issues (#14-#21) are the next active workstream
 
 **Mistakes made:** None
+
+---
+
+## Agent Session - Issue #15
+
+**Worked on:** Issue #15 - Route NocoDB through Caddy + Cloudflare DNS
+
+**What I did:**
+- Added `@nocodb host data.bjblabs.com` route in Caddyfile, reverse proxying to localhost:8080
+- Deployed updated Caddyfile to Mac Mini and reloaded Caddy
+- Created proxied CNAME DNS record in Cloudflare pointing `data` to the tunnel hostname
+- Initially pointed CNAME to `bjblabs.com` (wrong) → got HTTP 530 → fixed to point to `e4978b52-...cfargotunnel.com`
+- Verified: https://data.bjblabs.com returns 200 with NocoDB UI
+
+**What I learned:**
+- Cloudflare DNS CNAME records for tunnel-routed services must point to `<tunnel-id>.cfargotunnel.com`, NOT to the apex domain
+- Initial 530 errors after DNS record creation may be transient (propagation) — always verify after a short wait
+
+**Mistakes made:**
+- Created CNAME pointing to `bjblabs.com` instead of the tunnel hostname — caused 530 errors. Fixed by checking existing records for the correct pattern.

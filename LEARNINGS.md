@@ -22,7 +22,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 (GCP: `vast-nectar-487617-j6`, sub: `gog-gmail-watch-push`) |
 | Legal Podcast | `legalpodcast.bjblabs.com` | Docker service → port 9002, static data via Caddy |
 | Legal Podcast admin | `legalpodcast.bjblabs.com/` | Caddy file_server → `~/services/legal-podcast/admin-ui/` |
-| NocoDB | `data.bjblabs.com` (pending #15) | Docker → port 8080 |
+| NocoDB | `data.bjblabs.com` | Docker → port 8080 |
 
 ## Caddy
 
@@ -77,7 +77,8 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Port:** 8080 (NocoDB admin UI)
 - **Data:** SQLite at `~/services/nocodb/data/noco.db`
 - **Secrets:** `.env` file (chmod 600) — `NC_AUTH_JWT_SECRET`
-- **Pending:** DNS routing (#15), Zero Trust (#16), data migration (#17), backups (#18)
+- **DNS:** CNAME `data.bjblabs.com` → tunnel (Cloudflare record ID: `01a081695d60c0e228d602a967d02f7c`)
+- **Pending:** Zero Trust (#16), data migration (#17), backups (#18)
 
 ## Monitoring & Backups
 
