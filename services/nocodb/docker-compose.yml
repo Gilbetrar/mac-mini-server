@@ -1,0 +1,27 @@
+# NocoDB — Self-hosted Airtable alternative
+# Deploy to ~/services/nocodb/ on the Mac Mini
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f
+#   docker compose down
+
+services:
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: nocodb
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/usr/app/data
+    env_file:
+      - .env
+    environment:
+      - NC_PUBLIC_URL=https://data.bjblabs.com
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
