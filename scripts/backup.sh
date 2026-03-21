@@ -53,15 +53,31 @@ fi
 
 # Create backup tarball (config + data, excluding large transient files)
 TEMP_FILE="$BACKUP_DIR/.backup-in-progress.tar.gz"
-trap 'rm -f "$TEMP_FILE"' EXIT
+trap 'rm -f "$TEMP_FILE" "$HOME/services/nocodb/data/noco-backup.db"' EXIT
 
+# Safe SQLite backup for NocoDB before tarring
+# sqlite3 .backup creates a consistent snapshot (safe while DB is in use)
+NOCODB_DB="$HOME/services/nocodb/data/noco.db"
+NOCODB_BACKUP="$HOME/services/nocodb/data/noco-backup.db"
+if [[ -f "$NOCODB_DB" ]] && command -v sqlite3 &> /dev/null; then
+    if sqlite3 "$NOCODB_DB" ".backup $NOCODB_BACKUP" 2>> "$LOG_FILE"; then
+        log "NocoDB SQLite backup created"
+    else
+        log "WARNING: NocoDB SQLite backup failed, will backup live DB file"
+    fi
+fi
+
+# Include noco-backup.db (consistent snapshot) and exclude live noco.db
 if tar czf "$TEMP_FILE" \
     -C "$HOME/services" \
     --exclude='data/health-check/health-check.log' \
     --exclude='data/anki-renderer-deploy.log' \
     --exclude='data/caddy/*.log' \
     --exclude='data/cloudflared/*.log' \
-    config/ data/ 2>> "$LOG_FILE"; then
+    --exclude='nocodb/data/noco.db' \
+    --exclude='nocodb/data/noco.db-wal' \
+    --exclude='nocodb/data/noco.db-shm' \
+    config/ data/ nocodb/data/ 2>> "$LOG_FILE"; then
     mv "$TEMP_FILE" "$DAILY_FILE"
     BACKUP_SIZE=$(du -h "$DAILY_FILE" | cut -f1)
     log "Daily backup created: $DAILY_FILE ($BACKUP_SIZE)"

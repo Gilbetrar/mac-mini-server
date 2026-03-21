@@ -55,12 +55,34 @@ tar xzf /tmp/backup-2026-03-20.tar.gz -C /tmp/restore
 8. Start services: Docker containers, Caddy, cloudflared
 9. Update Cloudflare tunnel config if hostname changed
 
+## NocoDB Restore
+
+The backup contains `noco-backup.db` (a consistent SQLite snapshot). Rename it to `noco.db` when restoring.
+
+```bash
+# 1. Extract NocoDB data from backup
+tar xzf "$BACKUP" -C /tmp/restore nocodb/data/
+
+# 2. Stop NocoDB if running
+cd ~/services/nocodb && docker compose down
+
+# 3. Restore the database (backup file is noco-backup.db)
+cp /tmp/restore/nocodb/data/noco-backup.db ~/services/nocodb/data/noco.db
+
+# 4. Restart NocoDB
+docker compose up -d
+
+# 5. Verify
+curl -sf http://localhost:8080/api/v1/health && echo "NocoDB healthy"
+```
+
 ## What's Backed Up
 
 | Directory | Contents |
 |-----------|----------|
 | `config/` | Caddyfile, cloudflared config, Telegram creds, docs |
 | `data/` | OpenClaw data, health check state (logs excluded) |
+| `nocodb/data/` | NocoDB SQLite database |
 
 ## What's NOT Backed Up (by design)
 

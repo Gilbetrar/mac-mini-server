@@ -125,6 +125,16 @@ check_service "cloudflare-tunnel" \
     "curl -sf -o /dev/null -m 15 https://anki-renderer.bjblabs.com" \
     "Cloudflare tunnel not routing (anki-renderer.bjblabs.com unreachable externally)"
 
+# 11. NocoDB Docker container is running
+check_service "nocodb-docker" \
+    "docker ps --filter 'name=nocodb' --filter 'status=running' -q | grep -q ." \
+    "NocoDB Docker container is not running"
+
+# 12. NocoDB HTTP responds
+check_service "nocodb-http" \
+    "curl -sf -o /dev/null -m 10 http://localhost:8080/api/v1/health" \
+    "NocoDB (port 8080) is not responding"
+
 log "--- Health check complete ---"
 
 # Trim log file if over 10000 lines
