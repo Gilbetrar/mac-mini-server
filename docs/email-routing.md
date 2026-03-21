@@ -53,6 +53,29 @@ When Email Routing is enabled, Cloudflare automatically adds the required MX rec
 
 These take effect once bjblabs.com nameservers point to Cloudflare.
 
+## Email Worker Pipeline (podcast@bjblabs.com)
+
+The `podcast@bjblabs.com` address has a special routing path for the Legal Podcast service. Instead of forwarding to Gmail, it routes through a Cloudflare Email Worker that delivers the raw email to the Mac Mini.
+
+**Flow:**
+1. Email arrives at `podcast@bjblabs.com`
+2. Cloudflare Email Routing matches the address → routes to `legal-podcast-email-forwarder` worker
+3. Worker reads the raw MIME message
+4. Worker POSTs to `https://legalpodcast.bjblabs.com/webhook/email` with headers:
+   - `Content-Type: message/rfc822`
+   - `X-Webhook-Secret: <secret>` (for authentication)
+   - `X-Original-From` and `X-Original-To`
+5. Mac Mini service processes the email (parses attachment, starts podcast pipeline)
+
+**Worker details:**
+- Name: `legal-podcast-email-forwarder`
+- Source: `email-worker/src/index.js` (in mac-mini-server repo)
+- Config: `email-worker/wrangler.toml`
+- Deploy: `cd email-worker && npx wrangler deploy`
+- Secrets: `WEBHOOK_SECRET` set via `wrangler secret put` (mirrored at `~/services/config/alerts/email-webhook.env` on Mac Mini)
+
+**Note:** The webhook endpoint (`/webhook/email`) on the Mac Mini does not exist yet. It will be built as part of legal-podcast issues #59/#60. Until then, the worker will reject emails (non-200 response from webhook).
+
 ## Email Sending
 
 Email **sending** is NOT handled by Cloudflare Email Routing. For outbound email, services use Resend (configured per-service). See each service's documentation for sending configuration.

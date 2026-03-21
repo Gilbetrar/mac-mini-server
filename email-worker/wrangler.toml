@@ -1,0 +1,7 @@
+name = "legal-podcast-email-forwarder"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+workers_dev = false
+
+[vars]
+WEBHOOK_URL = "https://legalpodcast.bjblabs.com/webhook/email"
