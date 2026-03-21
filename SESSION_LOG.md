@@ -123,6 +123,40 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #11
+
+**Worked on:** Issue #11 - Backup strategy
+
+**What I did:**
+1. Created S3 bucket `bjblabs-backups-719390918663` in us-east-1
+2. Created dedicated IAM user `mac-mini-backup` with policy scoped to only the backup bucket
+3. Installed AWS CLI on Mac Mini via Homebrew (wasn't installed despite issue comment saying it was)
+4. Configured AWS credentials on Mac Mini (`~/.aws/credentials` + `~/.aws/config`)
+5. Wrote `scripts/backup.sh` — daily tarball of `config/` + `data/`, excluding logs
+6. Created `config/com.bjblabs.backup.plist` — runs daily at 3am
+7. Wrote `config/restore-procedure.md` — local, S3, and disaster recovery restore paths
+8. Deployed all three files to Mac Mini
+9. Ran backup successfully — 292MB tarball, synced to S3 (~65 seconds)
+10. Verified idempotency — re-run skips if today's backup exists
+11. Tested restore — extracted file from tarball, verified contents match
+12. Loaded launchd job — confirmed running
+
+**What I learned:**
+- AWS CLI was NOT pre-installed on Mac Mini (issue comment was wrong) — `brew install awscli` works fine
+- Backup size is ~292MB, mostly from OpenClaw data (`data/openclaw/` and `openclaw-export.tar.gz`)
+- S3 sync at ~4.5 MiB/s from Mac Mini — acceptable for daily off-site backup
+- No CI workflows in this repo (confirmed from previous session)
+
+**Codebase facts discovered:**
+- `~/services/backups/` directory existed but was empty
+- `~/services/data/` is 317MB, `~/services/config/` is 40K
+- `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin` to PATH for SSH sessions
+
+**Mistakes made:**
+- None
+
+---
+
 ## Agent Session - Issue #7 (Sub-issue #31)
 
 **Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issue: openclaw-deployment#31 - Export config & data from EC2)

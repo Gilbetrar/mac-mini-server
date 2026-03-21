@@ -71,6 +71,16 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Logs:** `~/services/data/health-check/health-check.log` (auto-trimmed at 10k lines)
 - **Checks:** caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, deploy-webhook, cloudflare-tunnel (external)
 
+## Backups (LIVE)
+
+- **Script:** `~/services/scripts/backup.sh` — daily tarball of config/ + data/
+- **Schedule:** launchd `com.bjblabs.backup`, daily at 3am
+- **Local:** `~/services/backups/daily/` (7-day retention), `~/services/backups/weekly/` (4-week, Sundays)
+- **Off-site:** `s3://bjblabs-backups-719390918663/mac-mini/` (IAM user: `mac-mini-backup`, scoped to bucket)
+- **Restore docs:** `~/services/config/restore-procedure.md`
+- **Logs:** `~/services/backups/backup.log` (auto-trimmed at 5k lines)
+- Telegram alert on backup failure; idempotent (skips if today's backup exists)
+
 ## Gotchas
 
 - `systemsetup` emits `Error:-99` on modern macOS — cosmetic, settings apply
