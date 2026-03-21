@@ -40,6 +40,39 @@
 		file_server
 	}
 
+	# Legal Podcast — service API + static data files + admin UI
+	@legalpodcast host legalpodcast.bjblabs.com
+	handle @legalpodcast {
+		# Webhook and API routes — proxy to service container
+		@service_routes {
+			path /webhooks/*
+			path /api/*
+			path /health
+		}
+		handle @service_routes {
+			reverse_proxy localhost:9002
+		}
+
+		# Static data files — served directly by Caddy from the data volume
+		@data_files {
+			path /audio/*
+			path /redlines/*
+			path /images/*
+			path /feed.xml
+		}
+		handle @data_files {
+			root * /Users/ben/services/legal-podcast/data
+			file_server
+		}
+
+		# Admin UI — vanilla HTML/CSS/JS
+		handle {
+			root * /Users/ben/services/legal-podcast/admin-ui
+			try_files {path} /index.html
+			file_server
+		}
+	}
+
 	# Default — no matching service
 	handle {
 		respond "Mac Mini server is running." 200

@@ -1,0 +1,31 @@
+# Legal Podcast Service — Mac Mini deployment
+# Deploy to ~/services/legal-podcast/ on the Mac Mini
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f
+#   docker compose down
+
+services:
+  legal-podcast:
+    build:
+      context: ./repo
+      dockerfile: Dockerfile
+    container_name: legal-podcast
+    restart: unless-stopped
+    ports:
+      - "9002:9002"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=9002
+      - DATA_DIR=/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9002/health').then(r => { if (!r.ok) process.exit(1) })"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

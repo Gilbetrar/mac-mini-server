@@ -105,12 +105,22 @@ check_service "openclaw-docker" \
     "docker ps --filter 'name=openclaw-openclaw-gateway' --filter 'status=running' -q | grep -q ." \
     "OpenClaw Docker containers are not running"
 
-# 7. Deploy webhook is running (port 9001)
+# 7. Legal Podcast service responds
+check_service "legal-podcast" \
+    "curl -sf -o /dev/null -m 10 http://localhost:9002/health" \
+    "Legal Podcast service (port 9002) is not responding"
+
+# 8. Legal Podcast Docker container is running
+check_service "legal-podcast-docker" \
+    "docker ps --filter 'name=legal-podcast' --filter 'status=running' -q | grep -q ." \
+    "Legal Podcast Docker container is not running"
+
+# 9. Deploy webhook is running (port 9001)
 check_service "deploy-webhook" \
     "curl -sf -o /dev/null -m 5 http://localhost:9001 || [[ \$? -eq 22 ]]" \
     "Anki Renderer deploy webhook (port 9001) is not responding"
 
-# 8. External check — verify Cloudflare tunnel is routing traffic
+# 10. External check — verify Cloudflare tunnel is routing traffic
 check_service "cloudflare-tunnel" \
     "curl -sf -o /dev/null -m 15 https://anki-renderer.bjblabs.com" \
     "Cloudflare tunnel not routing (anki-renderer.bjblabs.com unreachable externally)"
