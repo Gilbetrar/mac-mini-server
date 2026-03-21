@@ -12,7 +12,7 @@ Cloudflare Email Routing handles inbound email for bjblabs.com. It replaces AWS 
 
 | Address | Destination | Purpose |
 |---------|-------------|---------|
-| `podcast@bjblabs.com` | `ben.bateman.email@gmail.com` | Legal Podcast inbound email |
+| `podcast@bjblabs.com` | Email Worker → Mac Mini webhook | Legal Podcast inbound email |
 | `*@bjblabs.com` (catch-all) | `ben.bateman.email@gmail.com` | Catch all other addresses |
 
 ## Adding a New Email Route
@@ -74,7 +74,7 @@ The `podcast@bjblabs.com` address has a special routing path for the Legal Podca
 - Deploy: `cd email-worker && npx wrangler deploy`
 - Secrets: `WEBHOOK_SECRET` set via `wrangler secret put` (mirrored at `~/services/config/alerts/email-webhook.env` on Mac Mini)
 
-**Note:** The webhook endpoint (`/webhook/email`) on the Mac Mini does not exist yet. It will be built as part of legal-podcast issues #59/#60. Until then, the worker will reject emails (non-200 response from webhook).
+The webhook endpoint is live — the legal podcast service processes inbound MIME emails at `POST /webhooks/email`, authenticating via the `X-Webhook-Secret` header.
 
 ## Email Sending
 
