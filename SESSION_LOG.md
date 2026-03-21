@@ -362,3 +362,36 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #9 (sub-issue #63)
+
+**Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider
+
+**What I did:**
+- Deleted polly-provider.ts and its tests from @legal-podcast/tts package
+- Removed @aws-sdk/client-polly dependency
+- Updated default TTS provider from polly-neural to openai across all files
+- Updated 21 files: handlers, types, admin UI, scripts, CDK stack, tests
+- Removed Polly IAM permissions from CDK stack
+- Fixed E2E test failures (case-sensitive provider name, voice name)
+- All 161 infra tests and 396 package tests pass, CI green
+
+**What I learned:**
+- The legal-podcast monorepo has pre-push lint hooks (turbo lint)
+- E2E tests use Playwright with route interception via mock data
+- The admin UI's formatProvider() capitalizes names (OpenAI not openai)
+- Playwright toContainText is case-sensitive
+- Issue #6 (Cloudflare Zero Trust) is deferred per comment
+- Issue #7/#36 (EC2 decommission) waiting until after 2026-03-25
+
+**Codebase facts discovered:**
+- legal-podcast has 7 workspace packages + infra (CDK) + admin-ui (vanilla JS)
+- Polly references were in 20+ files across handlers, types, UI, scripts, and tests
+- The CLI script (cli.ts) hardcoded PollyProvider, now uses OpenAIProvider
+- generate-samples.ts lists voice configs per provider for voice sample generation
+
+**Mistakes made:**
+- First push failed E2E: forgot to update case-sensitive 'openai' to 'OpenAI' in episode table test
+- Forgot to update 'Joanna' to 'Alloy' in voice highlight test
