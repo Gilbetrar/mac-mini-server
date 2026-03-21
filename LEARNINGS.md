@@ -78,8 +78,9 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Data:** SQLite at `~/services/nocodb/data/noco.db`
 - **Secrets:** `.env` file (chmod 600) — `NC_AUTH_JWT_SECRET`
 - **DNS:** CNAME `data.bjblabs.com` → tunnel (Cloudflare record ID: `01a081695d60c0e228d602a967d02f7c`)
-- **Zero Trust:** Access app `c1b4abb1-0184-4e6b-b812-2b226dc41921`, Allow policy for Ben. Service token pending (HANDOFF.md).
-- **Pending:** Service token for #16, data migration (#17), backups (#18)
+- **Zero Trust:** Access app `c1b4abb1-0184-4e6b-b812-2b226dc41921`, Allow policy for Ben + Service Token `NocoDB MCP`
+- **Service Token creds:** `~/services/nocodb/.cf-service-token` (CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET)
+- **Pending:** Data migration (#17), backups (#18)
 
 ## Monitoring & Backups
 

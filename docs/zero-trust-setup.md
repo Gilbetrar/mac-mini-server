@@ -10,7 +10,7 @@ Cloudflare Zero Trust (free tier, up to 50 users) provides edge-level authentica
 
 | Application | Domain | App ID | Service Token |
 |-------------|--------|--------|---------------|
-| NocoDB | `data.bjblabs.com` | `c1b4abb1-0184-4e6b-b812-2b226dc41921` | Pending — create via dashboard |
+| NocoDB | `data.bjblabs.com` | `c1b4abb1-0184-4e6b-b812-2b226dc41921` | `NocoDB MCP` (`4e9b0541-f78e-4fae-8765-793cff53ac91`) |
 
 ## Architecture
 
@@ -116,7 +116,9 @@ If a protected service also has endpoints consumed by other services (not browse
 - **Policy:** Allow Ben (`ben.bateman.email@gmail.com`, email OTP)
 - **Policy ID:** `a669b73e-3d7d-45eb-adca-4c53f7308d08`
 - **Session duration:** 24 hours
-- **Service Token:** Pending — needs dashboard creation (API token lacks `Access: Service Tokens` permission). Once created, save credentials to `~/services/nocodb/.cf-service-token` on Mac Mini. Then add a Service Token policy to the app to allow bypass.
+- **Service Token:** `NocoDB MCP` (non-expiring, ID: `4e9b0541-f78e-4fae-8765-793cff53ac91`)
+- **Service Token Policy ID:** `8d8eb76a-4e31-4ff0-b8a7-e1cd032faa8a` (non_identity decision)
+- **Credentials:** `~/services/nocodb/.cf-service-token` (chmod 600)
 
 ## Related Files
 
