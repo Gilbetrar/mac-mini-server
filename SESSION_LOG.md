@@ -4,132 +4,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #1
-
-**Worked on:** Issue #1 - macOS server hardening
-
-**What I did:**
-- Verified SSH connectivity to Mac Mini (`ssh mac-mini`)
-- Disabled computer sleep via `systemsetup -setcomputersleep Never`
-- Disabled display/disk sleep via `pmset -a displaysleep 0 sleep 0 disksleep 0`
-- Enabled auto-restart after power failure via `systemsetup -setrestartpowerfailure on`
-- Enabled macOS firewall via `socketfilterfw --setglobalstate on`
-- Created directory structure: `~/services/`, `~/services/config/`, `~/services/data/`, `~/services/backups/`
-- All 5 verification checks from the issue passed
-
-**What I learned:**
-- `systemsetup` emits Error:-99 on modern macOS (Sequoia 26.x) — cosmetic, settings apply correctly
-- `socketfilterfw --setglobalstate on` produces no output on success
-- The remote user is `ben` (lowercase) even though the Mac shows "Ben" in its hostname
-
-**Codebase facts discovered:**
-- Repo was completely empty (no commits) — this was the first session
-- 13 open issues, all labeled `migration`, numbered 1-13
-- Issues designed to be worked sequentially
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #2
-
-**Worked on:** Issue #2 - Install Docker Desktop
-
-**What I did:**
-- Downloaded Docker Desktop ARM64 .dmg from Docker's website
-- Installed to /Applications via cp -R from mounted .dmg
-- Ran the installer with `--accept-license --user ben` to complete first-run setup
-- Created CLI symlinks in /usr/local/bin (docker, kubectl, credential helpers)
-- Created `~/.zshenv` with PATH export so SSH non-interactive sessions can find docker
-- Configured resource limits: 4 CPUs, 8GB RAM, 64GB disk via settings-store.json
-- Configured log rotation via daemon.json (json-file, 10MB max, 3 files)
-- Added Docker Desktop as macOS login item for auto-start on boot
-- Removed `credsStore: desktop` from Docker config.json to fix keychain issues in SSH
-- Erased stored Docker Hub credentials from keychain credential store
-- Verified: docker --version, aarch64 architecture, hello-world runs, resource limits applied
-
-**What I learned:**
-- Docker Desktop for Mac uses `~/Library/Group Containers/group.com.docker/settings-store.json` for settings
-- SSH non-interactive sessions don't source .zshrc — need .zshenv for PATH
-- Docker Desktop's `credsStore: desktop` uses macOS keychain, which is locked in SSH sessions
-- Must erase stored keychain credentials AND remove credsStore from config for SSH docker pull to work
-- The Docker Desktop installer at `/Applications/Docker.app/Contents/MacOS/install` has useful subcommands: `config`, `socket-symlink-on-startup`, etc.
-- `AutoStart: true` in settings-store.json plus macOS login item ensures Docker starts after reboot
-- Docker Desktop settings key names are case-sensitive: `Cpus` (not `CPUs`) is what gets written to settings
-
-**Codebase facts discovered:**
-- Previous agent created scripts/01-*.sh pattern — following with scripts/02-install-docker.sh
-- No package.json/build system — this is pure infrastructure/documentation repo
-
-**Mistakes made:**
-- Initially tried to run docker before the install completed — Docker Desktop needs GUI-based first run or `install --accept-license`
-- Credential helper keychain issue took several attempts to diagnose — the fix was removing stored credentials AND the credsStore config
-
----
-
-## Agent Session - Issue #3
-
-**Worked on:** Issue #3 - Install Caddy reverse proxy
-
-**What I did:**
-- Installed Caddy v2.11.2 via Homebrew on Mac Mini
-- Created Caddyfile at ~/services/config/Caddyfile with placeholder response on :80
-- Configured Caddy log rotation (10MB per file, 5 files) via Caddyfile `log` directive
-- Created launchd plist at ~/Library/LaunchAgents/com.caddy.server.plist
-- Service auto-starts on login with KeepAlive enabled
-- Caddy data dir set to ~/services/data/caddy/ via XDG_DATA_HOME
-- Verified all acceptance criteria: version, config valid, service loaded, curl responds
-
-**What I learned:**
-- Homebrew Caddy installs to /opt/homebrew/bin/caddy (ARM64 Mac)
-- Caddy has built-in log rotation via `roll_size` and `roll_keep` directives
-- `caddy validate --config <path>` checks syntax; `caddy reload --config <path>` applies changes live
-- `caddy fmt --overwrite` auto-formats Caddyfile
-- launchd KeepAlive ensures Caddy restarts if it crashes
-- Caddy's global options block (the `{ }` at top of Caddyfile) configures logging, etc.
-
-**Codebase facts discovered:**
-- Added config/ directory for version-controlled config files (Caddyfile, launchd plist)
-- Script naming follows pattern: scripts/NN-description.sh
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #4 (partial)
-
-**Worked on:** Issue #4 - Cloudflare setup + Tunnel (prep work only)
-
-**What I did:**
-- Installed cloudflared v2026.3.0 via Homebrew on Mac Mini
-- Created tunnel config template at config/cloudflared/config.yml
-- Created launchd plist at config/com.cloudflare.cloudflared.plist
-- Created setup script scripts/04-setup-cloudflare-tunnel.sh for post-auth steps
-- Created HANDOFF.md with exact instructions for interactive auth steps
-- Created ~/services/config/cloudflared/ directory on Mac Mini
-
-**Why PAUSED:**
-- `cloudflared tunnel login` requires interactive browser authentication
-- bjblabs.com must be added to Cloudflare dashboard manually (GUI)
-- Both steps require human interaction — can't be done autonomously
-
-**What the human needs to do:**
-1. Add bjblabs.com to Cloudflare dashboard (free plan, don't change nameservers)
-2. Run `ssh -t mac-mini "cloudflared tunnel login"` and authorize in browser
-3. Either run `./scripts/04-setup-cloudflare-tunnel.sh` or let next agent finish
-
-**What I learned:**
-- `cloudflared tunnel login` prints a URL for browser-based OAuth, saves cert to ~/.cloudflared/cert.pem
-- HANDOFF.md is gitignored by design — it's a transient communication file
-- cloudflared installs cleanly via Homebrew on ARM64 Mac
-
-**Mistakes made:**
-- None
-
----
-
 ## Agent Session - Issue #4 (completion)
 
 **Worked on:** Issue #4 - Cloudflare setup + Tunnel (completing after human auth)
@@ -152,38 +26,9 @@ Raw session history for the mac-mini-server project.
 - The API response includes a `credentials_file` object — save it to ~/.cloudflared/<tunnel-id>.json
 - cloudflared arg order: `tunnel --config <path> run` not `tunnel run --config <path>`
 - DNS CNAME for tunnel: point to `<tunnel-id>.cfargotunnel.com` with proxied=true
-- Cloudflare NS for bjblabs.com: ximena.ns.cloudflare.com, yew.ns.cloudflare.com
 
 **Mistakes made:**
 - Initial launchd plist had wrong arg order (`run` before `--config`) — cloudflared showed help instead of running
-
----
-
-## Agent Session - Issue #5 (prep)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (documentation + handoff)
-
-**What I did:**
-- Verified cloudflared tunnel is running (PID 7009, healthy) on Mac Mini
-- Found that the Cloudflare API token exists but only has DNS/zone permissions — not email routing
-- Created `docs/email-routing.md` with full documentation (routes, adding/removing, MX records, troubleshooting)
-- Deployed documentation to Mac Mini at `~/services/config/email-routing.md`
-- Created HANDOFF.md with step-by-step dashboard instructions for enabling Email Routing
-- HANDOFF offers two paths: manual dashboard config or adding API token permissions for next agent
-
-**Why PAUSED:**
-- Cloudflare Email Routing API requires "Email Routing Addresses:Edit" and "Email Routing Rules:Edit" permissions
-- The existing API token only has `#zone_settings:read/edit`, `#zone:read`, `#dns_records:read/edit`
-- Need human to either configure in dashboard or update token permissions
-
-**What I learned:**
-- Cloudflare Email Routing is a separate permission scope from DNS/zone management
-- bjblabs.com zone status is "pending" (nameservers not yet switched, expected)
-- Zone was created 2026-03-17, account ID: 95f53250a929e155644f51e03fc7c910
-- API endpoint for email routing: GET /zones/{zone_id}/email/routing
-
-**Mistakes made:**
-- None
 
 ---
 
@@ -196,87 +41,15 @@ Raw session history for the mac-mini-server project.
 - Created `podcast@bjblabs.com` → `ben.bateman.email@gmail.com` forwarding rule via API
 - Updated catch-all rule from disabled "drop" to enabled "forward to Gmail" via the `catch_all` endpoint
 - Updated HANDOFF.md to reflect that rules are already created — human only needs to enable Email Routing in dashboard
-- Removed redundant `config/email-routing.md` (docs/email-routing.md is the canonical version)
 
 **What I learned:**
 - The API token has zone-level email routing rule permissions but NOT account-level permissions
 - Zone endpoints that work: GET/POST/PUT/DELETE `/zones/{zone_id}/email/routing/rules`
 - Zone endpoints that fail (auth error): GET `/zones/{zone_id}/email/routing`, POST `/zones/{zone_id}/email/routing/enable`
-- Account endpoints that fail: GET `/accounts/{acct}/email/routing/addresses`
 - Catch-all rule must be updated via `/email/routing/rules/catch_all` endpoint, NOT by ID
-- Forwarding rules can be created even without a verified destination address (may need verification before delivery works)
 
 **Mistakes made:**
 - Created redundant `config/email-routing.md` before checking that `docs/email-routing.md` already existed — cleaned up
-
----
-
-## Agent Session - Issue #5 (Completion Handoff)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (final steps)
-
-**What I learned:**
-- The `/zones/{zone_id}/email/routing` status endpoint and `/zones/{zone_id}/email/routing/enable` endpoint both require account-level permissions not present in the current API token
-- The `/zones/{zone_id}/email/routing/rules` endpoint works fine with the current token — rules can be read/created/modified
-- Both routing rules (podcast@ and catch-all) are confirmed present and enabled via API
-- Enabling Email Routing is genuinely dashboard-only with the current token scope
-
-**Codebase facts discovered:**
-- HANDOFF.md is gitignored (per LEARNINGS.md) so it won't be committed
-
-**What I did:**
-- Verified routing rules exist and are enabled via API
-- Attempted to enable email routing via API (confirmed auth error)
-- Created HANDOFF.md with detailed steps for the human to complete in Cloudflare Dashboard
-- Signaled PAUSED for human action
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #5 (Iteration 6)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (handoff verification)
-
-**What I did:**
-- Verified routing rules still exist and are enabled via API (podcast@ and catch-all both active)
-- Confirmed MX records still point to AWS SES (`inbound-smtp.us-east-1.amazonaws.com`) — Email Routing not yet enabled
-- Confirmed API token cannot access `/email/routing`, `/email/routing/enable`, or `/email/routing/dns` endpoints (auth error)
-- Updated HANDOFF.md with current verification state
-- Signaled PAUSED for human dashboard action
-
-**What I learned:**
-- The Cloudflare API token has granular permissions — `/email/routing/rules` works but settings/enable/dns endpoints don't
-- MX record check (`dig MX bjblabs.com +short`) is a reliable way to verify if Email Routing is enabled
-- HANDOFF.md already existed from a previous session — this is the second time this handoff has been surfaced
-
-**Codebase facts discovered:**
-- HANDOFF.md is gitignored (per LEARNINGS.md)
-- Previous agents already did all API-accessible work for issue #5
-
-**Mistakes made:**
-- None — this was a straightforward verification and handoff update
-
----
-
-## Agent Session - Issue #5 (Handoff Re-check)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (third handoff attempt)
-
-**What I learned:**
-- Email Routing still not enabled — MX records still point to AWS SES (`inbound-smtp.us-east-1.amazonaws.com`)
-- The two API-created routing rules (podcast@ and catch-all) are still present and enabled
-- The `/zones/{zone_id}/email/routing` and `/zones/{zone_id}/email/routing/enable` endpoints both return auth errors with the current token
-- This is the third agent session surfacing the same handoff — the human hasn't completed the dashboard steps yet
-- Re-created HANDOFF.md with clear step-by-step instructions
-
-**Codebase facts discovered:**
-- HANDOFF.md was absent (cleaned up or never committed), so a new one was needed
-- All prior API work from issue #5 is still intact
-
-**Mistakes made:**
-- None
 
 ---
 
@@ -289,11 +62,8 @@ Raw session history for the mac-mini-server project.
 - Advised using `podcast@bjblabs.com` as initial address (real use case from legal podcast)
 - Confirmed deleting old AWS SES MX record was safe (with caveat about legal podcast pipeline)
 - Verified MX records now point to Cloudflare (`route1/2/3.mx.cloudflare.net`)
-- Verified both routing rules (podcast@ and catch-all) still active via API
 - Ben sent test email — confirmed delivery to Gmail
 - Closed issue #5 on GitHub
-- Updated LEARNINGS.md with completion status and SES impact note
-- Cleaned up HANDOFF.md
 
 **What I learned:**
 - Legal podcast project depends on SES email receiving: email → SES → S3 → Lambda (extracts DOCX → generates podcast)
@@ -321,10 +91,6 @@ Raw session history for the mac-mini-server project.
 - Issue scope was simplified: OTP instead of Google OAuth, not urgent until first browser-facing service
 - Issue #6 is NOT a dependency for #7 (OpenClaw) per scope clarification comment
 
-**Codebase facts discovered:**
-- HANDOFF.md is gitignored (mentioned in LEARNINGS.md)
-- Project follows pattern of writing docs to both repo (`docs/`) and Mac Mini (`~/services/config/`)
-
 **Mistakes made:**
 - None
 
@@ -338,25 +104,14 @@ Raw session history for the mac-mini-server project.
 - SSH'd to EC2 via Tailscale (`ubuntu@100.90.248.10`), confirmed connectivity
 - Exported `~/.openclaw/`, `~/openclaw/.env`, `docker-compose.yml`, all Dockerfiles, `docker-setup.sh`, `~/.config/gogcli/` into tarball
 - Transferred tarball EC2 → laptop → Mac Mini (`~/services/data/openclaw-export.tar.gz`, 304 MB)
-- Verified file counts: 2,404 files on EC2 vs 2,407 in tarball (match within timing variance)
-- Documented export manifest (`docs/ec2-export-manifest.md`) and environment variables (`docs/environment-variables.md`)
-- Issue #31 was already closed (by prior agent or human)
+- Verified file counts match
+- Documented export manifest and environment variables
 
 **What I learned:**
 - EC2 OpenClaw uses Tailscale for access (IP: 100.90.248.10), not a standard SSH alias
 - No Docker volumes in use — everything is bind-mounted from `~/.openclaw/` and `~/.config/gogcli/`
-- Two locally-built Docker images (not from registry): `openclaw:local` and `openclaw-sandbox-browser:bookworm-slim`
-- The `gog` binary (v0.11.0) is installed at `/usr/local/bin/gog` on EC2 and bind-mounted into containers
+- Two locally-built Docker images: `openclaw:local` and `openclaw-sandbox-browser:bookworm-slim`
 - Playwright browsers (~250 MB) are the bulk of the export
-- Claude session keys were empty at export time — will need regeneration (Issue #35)
-- Issue #6 (Zero Trust) was deferred — skipped to #7 as it's unblocked
-- No CI configured for mac-mini-server repo
-
-**Codebase facts discovered:**
-- OpenClaw compose has 3 services: gateway, cli, sandbox-browser
-- Gateway depends on sandbox-browser health check (CDP on port 9222)
-- Gmail Pub/Sub webhook runs on port 8788 inside the gateway container
-- gogcli keyring password is hardcoded in docker-compose.yml (`openclaw-gog`)
 
 **Mistakes made:**
 - None
@@ -373,30 +128,18 @@ Raw session history for the mac-mini-server project.
 3. Built `openclaw:local` image with `OPENCLAW_INSTALL_BROWSER=1` (~4.5 GB, native ARM64)
 4. Built custom `openclaw-sandbox-browser:bookworm-slim` with CDP Host-header proxy (~1.5 GB)
 5. Created adapted `docker-compose.yml` and `.env` with Mac Mini paths
-6. Fixed config issues: controlUi origin fallback, disabled problematic extensions
-7. Both containers running and healthy on Mac Mini
+6. Both containers running and healthy on Mac Mini
 
 **What I learned:**
-- Docker Desktop on Mac Mini doesn't auto-start via SSH — `open -a Docker` fails. Use: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
-- OpenClaw HEAD (main) has plugin validation regression — "extension entry escapes package directory" for all built-in extensions. Pinned to v2026.3.12 which works correctly
-- Non-loopback gateway binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true` (new in recent versions)
-- Upstream sandbox-browser uses `socat` for CDP forwarding which doesn't rewrite Host headers — Chromium rejects Docker service names as Host. Custom CDP proxy (`cdp-host-proxy.py`) still needed
-- Sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` env var for Chromium to run in Docker
-- x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — deleted `.playwright-browsers/` and relied on image-built browsers instead
-- EC2 commit `4e916bb25` doesn't exist in upstream repo (was a local patch). Used v2026.3.12 tag instead
-- Docker Desktop on macOS handles uid mapping transparently via VirtioFS — no manual ownership changes needed
-
-**Codebase facts discovered:**
-- OpenClaw repo at `github.com/openclaw/openclaw` (public)
-- Dockerfile supports ARM64 natively with multi-stage build
-- `OPENCLAW_INSTALL_BROWSER=1` build arg installs Playwright Chromium during image build
-- gog binary can't be host-mounted (macOS binary ≠ Linux container) — need Linux ARM64 build or container install
+- Docker Desktop on Mac Mini doesn't auto-start via SSH — use `nohup com.docker.backend --start-docker-desktop`
+- OpenClaw HEAD (main) has plugin validation regression — pinned to v2026.3.12
+- Non-loopback gateway binding requires `dangerouslyAllowHostHeaderOriginFallback: true`
+- x86_64 Playwright browsers from EC2 incompatible with ARM64 — use image-built browsers
+- Docker Desktop on macOS handles uid mapping transparently via VirtioFS
 
 **Mistakes made:**
 - First tried building from HEAD — wasted time on plugin validation errors before discovering v2026.3.12 works
-- Initially forgot `OPENCLAW_BROWSER_NO_SANDBOX` env var — sandbox-browser healthcheck failed silently (just connection refused)
-
-**Status:** Containers healthy. Telegram bot has 409 conflict with EC2 (expected — both running same bot token). Gmail watcher disabled (gog binary missing). Next steps: issue #33 (Caddy + Tunnel wiring), #34 (Gmail webhook), #35 (setup-token).
+- Initially forgot `OPENCLAW_BROWSER_NO_SANDBOX` env var — sandbox-browser healthcheck failed silently
 
 ---
 
@@ -405,25 +148,16 @@ Raw session history for the mac-mini-server project.
 **Worked on:** openclaw-deployment#33 - Wire OpenClaw through Caddy + Cloudflare Tunnel
 
 **What I did:**
-1. Updated Caddyfile with host-matched route: `openclaw.bjblabs.com` → `localhost:18789` (gateway)
-2. Created DNS CNAME in Cloudflare: `openclaw.bjblabs.com` → tunnel (`e4978b52-...cfargotunnel.com`), proxied
-3. Deployed Caddyfile to Mac Mini, restarted Caddy and cloudflared
-4. Verified end-to-end: `https://openclaw.bjblabs.com/healthz` returns `{"ok":true,"status":"live"}`
+1. Updated Caddyfile with host-matched route: `openclaw.bjblabs.com` → `localhost:18789`
+2. Created DNS CNAME in Cloudflare: `openclaw.bjblabs.com` → tunnel, proxied
+3. Verified end-to-end: `https://openclaw.bjblabs.com/healthz` returns `{"ok":true}`
 
 **What I learned:**
-- cloudflared config doesn't need per-service ingress rules — the catch-all route sends everything to Caddy, which handles host-based routing
-- Caddy `@matcher host` syntax works well for multi-service routing on a single `:80` listener
-- The cloudflared config already had the right architecture (single catch-all to Caddy)
-
-**Codebase facts discovered:**
-- `launchctl load/unload/bootstrap/print` all fail via SSH with exit 134 or "Domain does not support specified action" — launchd needs an interactive login session on modern macOS
-- Services started via `nohup` work fine but won't auto-restart; LaunchAgent plists exist and will work on next interactive login/reboot
-- The OpenClaw gateway serves its control UI + `/healthz` on port 18789; webhook port 8788 is separate
+- cloudflared catch-all means no config changes needed for new services — just Caddy route + CNAME
+- `launchctl` commands fail via SSH (exit 134) — services started via `nohup` work fine
 
 **Mistakes made:**
-- None significant. Initial `caddy reload` failed because Caddy wasn't running (had stopped since previous session). Needed to start it fresh.
-
-**Status:** Issue #33 closed. `openclaw.bjblabs.com` fully wired. Next: #34 (Gmail Pub/Sub webhook), #35 (setup-token), #36 (decommission EC2).
+- None significant.
 
 ---
 
@@ -432,103 +166,59 @@ Raw session history for the mac-mini-server project.
 **Worked on:** Issue #34 - Reconfigure Gmail Pub/Sub webhook
 
 **What I did:**
-1. Discovered `gog` binary (gogcli) was missing in Docker container — source of "Gmail watcher disabled" error
-2. Found gog is a Go binary from github.com/steipete/gogcli — downloaded ARM64 Linux v0.12.0
-3. Stored binary at `~/services/openclaw/bin/gog` on Mac Mini
-4. Added volume mount in docker-compose.yml: `./bin/gog:/usr/local/bin/gog:ro`
-5. Updated `hooks.gmail.serve.bind` from `127.0.0.1` to `0.0.0.0` in openclaw.json (needed for Docker bridge networking)
-6. Added Caddy route: `/gmail-pubsub*` on `openclaw.bjblabs.com` → `localhost:8788`
-7. Updated Pub/Sub subscription push endpoint via gcloud on EC2 (gcloud not available locally/Mac Mini)
-8. Old endpoint: `https://ip-172-31-31-65.tailde5b32.ts.net/gmail-pubsub?token=...`
-9. New endpoint: `https://openclaw.bjblabs.com/gmail-pubsub?token=...`
-10. Verified: stale Pub/Sub notifications immediately started arriving through the new path
+1. Found gog binary missing in Docker — downloaded ARM64 Linux v0.12.0 from steipete/gogcli
+2. Added volume mount in docker-compose.yml: `./bin/gog:/usr/local/bin/gog:ro`
+3. Updated `hooks.gmail.serve.bind` from `127.0.0.1` to `0.0.0.0` in openclaw.json
+4. Added Caddy route: `/gmail-pubsub*` on `openclaw.bjblabs.com` → `localhost:8788`
+5. Updated Pub/Sub subscription push endpoint via gcloud on EC2
+6. Verified stale notifications immediately arrived through new path
 
 **What I learned:**
-- gog binary is from steipete/gogcli (GitHub), statically linked Go binary with linux_arm64 releases
-- Docker bridge networking: 127.0.0.1 bind inside container is unreachable from host port mapping — must use 0.0.0.0
-- gog serve `--path /` makes it handle all paths (default is `/gmail-pubsub`)
-- OpenClaw's ensureDependency only auto-installs via Homebrew on macOS — Docker containers need manual binary installation
-- gcloud CLI is on EC2 but not Mac Mini — can use EC2 to manage GCP Pub/Sub subscriptions
-- The Pub/Sub subscription was using Tailscale hostname as push endpoint
-
-**Codebase facts discovered:**
-- OpenClaw Gmail watcher: gateway auto-starts `gog gmail watch serve` + `gog gmail watch start` (via startGmailWatch)
-- gog watch serve is the HTTP server receiving Pub/Sub push notifications
-- gog watch start tells Gmail API to push to the Pub/Sub topic
-- The watcher auto-renews every 60 minutes (configurable via renewEveryMinutes)
+- Docker bridge: 127.0.0.1 bind inside container unreachable from host — must use 0.0.0.0
+- gcloud CLI is on EC2 but not Mac Mini — used EC2 to manage GCP Pub/Sub
 - GCP project: `vast-nectar-487617-j6`, subscription: `gog-gmail-watch-push`
-- OAuth credentials (installed/desktop type) at `.openclaw/gcloud/credentials.json`
 
 **Mistakes made:**
-- First attempt to edit docker-compose via Python string replace failed due to shell escaping of `${}` — used `sed` instead
+- Shell escaping of `${}` in SSH commands — use `sed` instead of Python string replace
 
 ---
 
 ## Agent Session - Issue #7 (Sub-issues #35 & #36 Phase 1)
 
-**Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issues #35 and #36)
+**Worked on:** Issue #7 - Sub-issues #35 (Claude auth) and #36 (EC2 decommission Phase 1)
 
 **What I did:**
-- Verified Claude auth token in auth-profiles.json (from EC2 export) works for all three tiers
-- Tested Opus, Sonnet, and Haiku via `openclaw agent` CLI — all responded successfully
-- Added Haiku as fallback #2 (was only Opus default + Sonnet fallback)
-- Removed empty legacy env vars (CLAUDE_AI_SESSION_KEY, CLAUDE_WEB_SESSION_KEY, CLAUDE_WEB_COOKIE) from .env
-- Created docs/claude-setup-token.md with regeneration instructions
-- Deployed docs to Mac Mini at ~/services/config/claude-setup-token.md
-- Sub-issue #35 was already closed (by previous agent)
+- Verified Claude auth token works for all three tiers (Opus, Sonnet, Haiku)
+- Added Haiku as fallback #2
+- Removed empty legacy CLAUDE_* env vars from .env
 - Stopped EC2 instance i-0cc417431630fdfc5 (Phase 1 of #36)
-- Commented Phase 1 completion on issue #36 with all resource IDs for Phase 2 cleanup
-- Wrote HANDOFF.md for Phase 2 (terminate after 2026-03-25)
+- Documented Phase 2 (terminate after 2026-03-25) in issue comment
 
 **What I learned:**
-- OpenClaw auth uses auth-profiles.json, not environment variables. The CLAUDE_* env vars were legacy/empty.
-- `openclaw models auth add` / `paste-token` / `setup-token` are the three ways to configure auth
-- `openclaw agent --agent main --message "..." --json` is the way to test model responses via CLI
-- `openclaw models set` changes default; `openclaw models fallbacks add` adds fallbacks
-- The EC2 instance ID is i-0cc417431630fdfc5, EBS vol-049b363e353fd31f9, SG sg-084a0cd9295dfe466
-
-**Codebase facts discovered:**
-- HANDOFF.md is gitignored (per repo conventions)
-- Sub-issue #35 was already closed before this session started
-- The sandbox-browser dbus/Vulkan errors in logs are cosmetic (expected in headless Docker)
+- OpenClaw auth uses `auth-profiles.json`, not environment variables
+- `openclaw agent --agent main --message "..." --json` tests model responses via CLI
+- EC2: i-0cc417431630fdfc5, EBS vol-049b363e353fd31f9, SG sg-084a0cd9295dfe466
 
 **Mistakes made:**
-- None significant. Initially tried `--model` flag on `openclaw agent` which doesn't exist; used `openclaw models set` instead.
+- None significant.
 
 ---
 
 ## Agent Session - Issue #8 (Sub-issues #16, #17)
 
-**Worked on:** Issue #8 - Migrate Anki Renderer + DNS cutover to Cloudflare (sub-issues anki-renderer#16 and #17)
+**Worked on:** Issue #8 - Migrate Anki Renderer + DNS cutover (sub-issues anki-renderer#16 and #17)
 
 **What I did:**
-1. **anki-renderer#16 (Serve demo from Mac Mini):**
-   - Built WASM (`npm run build:wasm`) and demo (`npm run demo:build`) in anki-renderer repo
-   - Created `~/services/anki-renderer/dist/` on Mac Mini
-   - Copied built demo files via `scp`
-   - Added Caddy route: `@anki_renderer host anki-renderer.bjblabs.com` → `file_server` from dist/
-   - Validated and reloaded Caddyfile
-   - Verified via `curl -s http://localhost:80 -H 'Host: anki-renderer.bjblabs.com'` — HTML returned
-   - Closed anki-renderer#16
-
-2. **anki-renderer#17 (DNS cutover):**
-   - Nameserver cutover was already done (2026-03-17) — just needed CNAME update + docs
-   - Updated CNAME for `anki-renderer.bjblabs.com` from CloudFront to tunnel via Cloudflare API
-   - Verified `curl -s https://anki-renderer.bjblabs.com` returns HTTP 200
-   - Exported Route 53 records to `docs/route53-export.json` (16 records)
-   - Wrote `docs/dns-cutover-runbook.md` with full history and rollback procedure
-   - Closed anki-renderer#17
+1. Built WASM + demo in anki-renderer repo, deployed to `~/services/anki-renderer/dist/` on Mac Mini
+2. Added Caddy file_server route for `anki-renderer.bjblabs.com`
+3. Updated CNAME from CloudFront to tunnel via Cloudflare API
+4. Verified HTTPS access, exported Route 53 records, wrote DNS cutover runbook
+5. Closed both sub-issues
 
 **What I learned:**
-- cloudflared catch-all ingress means no cloudflared config changes needed for new services — just Caddy route + CNAME
-- `scp -r dir/ remote:target/` fails if target doesn't exist; must `mkdir -p` first, then `scp -r dir/* remote:target/`
-- Cloudflare DNS PATCH API to update CNAME: set `content` to tunnel CNAME and `proxied: true`
-
-**Codebase facts discovered:**
-- anki-renderer demo needs both `build:wasm` (Rust→WASM) and `demo:build` (Vite) steps
-- Demo dist includes: index.html, assets/ (JS/CSS), lib/, pkg/ (WASM)
-- Issue #6 (Zero Trust) is deferred per owner — not urgent until browser-facing service deployed
-- Issue #7 sub-issue #36 (EC2 decommission) time-blocked until 2026-03-25
+- cloudflared catch-all = no config changes for new services — just Caddy route + CNAME
+- `scp -r dir/ remote:target/` fails if target doesn't exist; `mkdir -p` first
+- anki-renderer needs both `build:wasm` (Rust→WASM) and `demo:build` (Vite) steps
 
 **Mistakes made:**
 - None.
@@ -537,29 +227,23 @@ Raw session history for the mac-mini-server project.
 
 ## Agent Session - Issue #8 (sub-issue #18)
 
-**Worked on:** Issue #8 - Migrate Anki Renderer, sub-issue anki-renderer#18 - Update CI/CD for Mac Mini deploy
+**Worked on:** Issue #8 - sub-issue anki-renderer#18 - Update CI/CD for Mac Mini deploy
 
 **What I did:**
-- Created a Python deploy webhook server (`scripts/deploy-webhook.py`) that receives tarball POSTs with bearer token auth, validates, and extracts to the deploy directory
-- Added Caddy route for `/_deploy` path on `anki-renderer.bjblabs.com` → webhook server on port 9001
-- Created launchd plist for webhook persistence across reboots
-- Updated GitHub Actions deploy.yml in anki-renderer repo: replaces CDK deploy with tarball POST to webhook
-- Set `DEPLOY_WEBHOOK_SECRET` GitHub secret on anki-renderer repo
-- Deployed and started webhook on Mac Mini, verified end-to-end pipeline works
+- Created deploy webhook server (`scripts/deploy-webhook.py`) with bearer token auth
+- Added Caddy route for `/_deploy` path → webhook on port 9001
+- Created launchd plist for webhook persistence
+- Updated GitHub Actions deploy.yml: replaces CDK deploy with tarball POST
+- Set `DEPLOY_WEBHOOK_SECRET` GitHub secret, verified end-to-end pipeline
 
 **What I learned:**
-- The Mac Mini has no Rust/wasm-pack installed — builds must happen in GitHub Actions, not locally
-- Python 3.9.6 (system Python) works fine for a simple HTTP webhook server
-- The webhook approach is ideal for Mac Mini deploys since it has no public SSH and Zero Trust isn't set up yet
-- GitHub auto-closes issues from commit messages (`Closes Gilbetrar/anki-renderer#18`)
-
-**Codebase facts discovered:**
-- anki-renderer demo dist is ~400KB tarball — well within webhook POST limits
-- Last deploy to AWS CDK was Jan 2026 — infrastructure has been stable
+- Mac Mini has no Rust/wasm-pack — builds must happen in GitHub Actions
+- Python 3.9.6 (system Python) works for simple HTTP webhook
+- Webhook approach ideal since no public SSH and Zero Trust not set up
+- SSH command expansion: `$(cat ...)` in double-quoted ssh expands locally; use single quotes
 
 **Mistakes made:**
-- Test deploy replaced real demo files — always test with a non-destructive method or have a restore plan ready
-- SSH command expansion gotcha: `$(cat ...)` in `ssh mac-mini "..."` expands locally with double quotes, need single quotes for remote expansion
+- Test deploy replaced real demo files — test non-destructively or have restore plan
 
 ---
 
@@ -568,26 +252,18 @@ Raw session history for the mac-mini-server project.
 **Worked on:** anki-renderer #19 - Delete AnkiRendererDemoStack
 
 **What I did:**
-- Surveyed all 8 open issues — most are time-gated or dependency-blocked
-- Issue #36 (EC2 decommission): gated until 2026-03-25
-- Issue #19 (delete CDK stack): ready but needs Ben's approval
-- Verified demo works on Mac Mini (HTTP 200, correct content)
-- Verified DNS is on Cloudflare nameservers
-- Inventoried all 15 AWS resources in the stack
+- Surveyed all 8 open issues — most time-gated or dependency-blocked
+- Verified demo works on Mac Mini and DNS is on Cloudflare
+- Inventoried all 15 AWS resources in the CDK stack
 - Found leftover `github-actions-anki-renderer` IAM role (not in CDK stack)
 - Found stale `AWS_ROLE_ARN` GitHub secret to remove
-- Confirmed OIDC provider should NOT be deleted (may be used by other repos)
-- Wrote HANDOFF.md with full cleanup instructions for Ben
+- Confirmed OIDC provider should NOT be deleted (shared across repos)
+- Wrote HANDOFF.md with cleanup instructions
 
 **What I learned:**
-- CDK stack has auto-delete bucket configuration, so `cdk destroy` should handle emptying S3
-- The OIDC provider is shared across repos — don't delete when cleaning up one repo's resources
-- Deploy workflow already fully migrated to Mac Mini webhook — no AWS references remain
-
-**Codebase facts discovered:**
-- Stack has 15 resources: S3, CloudFront, ACM cert, Route 53 record, 2 Lambdas, 3 IAM roles/policies, OAC, bucket policy, CDK metadata
-- `github-actions-anki-renderer` IAM role exists outside the stack
-- Only `AWS_ROLE_ARN` is stale; `DEPLOY_WEBHOOK_SECRET` is for Mac Mini deploy
+- CDK stack has auto-delete bucket config, `cdk destroy` handles emptying S3
+- OIDC provider is shared across repos — don't delete per-repo
+- Deploy workflow already fully migrated — no AWS references remain
 
 **Mistakes made:**
-- None this session
+- None

@@ -4,150 +4,80 @@ Distilled patterns for autonomous agents. Keep under 100 lines.
 
 ## Project Overview
 
-This repo manages the migration of Ben's services from AWS to a self-hosted M4 Mac Mini.
-The Mac Mini is on the local network, accessible via `ssh mac-mini`.
+Migration of services from AWS to self-hosted M4 Mac Mini.
+SSH: `ssh mac-mini`, user: `ben`, home: `/Users/ben`, sudo available.
+Services root: `~/services/` (subdirs: `config/`, `data/`, `backups/`)
 
-## SSH Access
+## Service Routing
 
-- **Host alias:** `ssh mac-mini` (configured in `~/.ssh/config` on Ben's laptop)
-- **Remote user:** `ben` (home dir: `/Users/ben`)
-- **Sudo:** available, use for system commands (`systemsetup`, `pmset`, `socketfilterfw`)
+Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) → service
+- cloudflared: single catch-all ingress → Caddy handles host routing
+- **Add new service:** (1) Caddy host route, (2) Cloudflare CNAME DNS record
 
-## Directory Structure (on Mac Mini)
+| Service | URL | Backend |
+|---------|-----|---------|
+| Anki Renderer | `anki-renderer.bjblabs.com` | Caddy file_server → `~/services/anki-renderer/dist/` |
+| Deploy webhook | `anki-renderer.bjblabs.com/_deploy` | Python webhook → port 9001 |
+| OpenClaw | `openclaw.bjblabs.com` | Docker gateway → port 18789 |
+| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 |
 
-- `~/services/` — root for all hosted services
-- `~/services/config/` — service configuration files
-- `~/services/data/` — persistent service data
-- `~/services/backups/` — backup files
+## Caddy
 
-## macOS System Settings Applied
+- Binary: `/opt/homebrew/bin/caddy`, Config: `~/services/config/Caddyfile` (version-controlled in `config/`)
+- Reload: `caddy reload --config ~/services/config/Caddyfile`
+- launchd: `~/Library/LaunchAgents/com.caddy.server.plist`
 
-- Sleep disabled: `sudo systemsetup -setcomputersleep Never` + `sudo pmset -a displaysleep 0 sleep 0 disksleep 0`
-- Auto-restart after power failure: `sudo systemsetup -setrestartpowerfailure on`
-- Firewall enabled: `sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on`
+## Cloudflare
+
+- **Tunnel:** `mac-mini` / `e4978b52-8394-4f5b-b715-ee96a5a9e641`, config: `~/services/config/cloudflared/config.yml`
+- **API token:** `~/services/config/.cloudflare-token` (perms: Tunnel, Access, Email Routing Rules, Zone, DNS, Workers Scripts)
+- **Zone:** `9d3c311fe7bd41ecab3830a57a3a51a6`, **Account:** `95f53250a929e155644f51e03fc7c910`
+- **DNS:** Cloudflare nameservers active since 2026-03-17. Route 53 zone kept as rollback until 2026-03-31.
+- **Email Routing:** LIVE — `podcast@` → email worker, catch-all → Gmail. Verify: `dig MX bjblabs.com +short`
+- **Email Worker:** `legal-podcast-email-forwarder`, source: `email-worker/`, deploy: `cd email-worker && npx wrangler deploy`
+- **Zero Trust:** NOT enabled, requires dashboard. Not blocking other work.
+
+## Anki Renderer (LIVE)
+
+- Static Vite demo served by Caddy from `~/services/anki-renderer/dist/`
+- **CI/CD:** push → GitHub Actions → tarball POST to webhook → extracted to dist/
+- **Webhook:** `~/services/anki-renderer/deploy-webhook.py` (port 9001, launchd managed)
+- **Secret:** `~/services/anki-renderer/.deploy-secret` + `DEPLOY_WEBHOOK_SECRET` GitHub secret
+- AWS stack `AnkiRendererDemoStack` deleted 2026-03-20
+
+## OpenClaw (LIVE)
+
+- **Version:** v2026.3.12 (pinned — HEAD has plugin validation regression)
+- **Directory:** `~/services/openclaw/` (compose, .env, .openclaw, repo, sandbox-browser-custom)
+- **Start:** `cd ~/services/openclaw && docker compose up -d`
+- **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog`
+- **Claude auth:** `auth-profiles.json` (not env vars). Opus default, Sonnet/Haiku fallbacks.
+- **EC2:** `i-0cc417431630fdfc5` STOPPED. Decommission after 2026-03-25 (issue #36).
 
 ## Docker Desktop
 
-- Installed at `/Applications/Docker.app`, CLI symlinks in `/usr/local/bin/`
-- Settings file: `~/Library/Group Containers/group.com.docker/settings-store.json`
-- Daemon config: `~/.docker/daemon.json` (log rotation configured)
-- Resource limits: 4 CPUs, 8GB RAM (half the M4's resources)
-- Auto-starts on login (login item + AutoStart setting)
-- `credsStore` removed from `~/.docker/config.json` — required for SSH docker pulls to work
+- Settings: `~/Library/Group Containers/group.com.docker/settings-store.json` (4 CPUs, 8GB RAM)
+- Start headlessly via SSH: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
 
-## Caddy Reverse Proxy
+## Telegram Alerts
 
-- Installed via Homebrew at `/opt/homebrew/bin/caddy` (v2.11.2)
-- Caddyfile: `~/services/config/Caddyfile` (version-controlled in repo at `config/Caddyfile`)
-- launchd service: `~/Library/LaunchAgents/com.caddy.server.plist` (version-controlled in `config/`)
-- Data/logs: `~/services/data/caddy/` (XDG_DATA_HOME)
-- Reload config: `caddy reload --config ~/services/config/Caddyfile`
-- Validate config: `caddy validate --config ~/services/config/Caddyfile`
-
-## Cloudflare Tunnel
-
-- Tunnel name: `mac-mini`, ID: `e4978b52-8394-4f5b-b715-ee96a5a9e641`
-- Config: `~/services/config/cloudflared/config.yml`
-- Credentials: `~/.cloudflared/<tunnel-id>.json` (not in repo)
-- API token: `~/services/config/.cloudflare-token` (600 perms)
-- launchd: `~/Library/LaunchAgents/com.cloudflare.cloudflared.plist`
-- Zone ID: `9d3c311fe7bd41ecab3830a57a3a51a6`, Account ID: `95f53250a929e155644f51e03fc7c910`
-- Cloudflare NS (for cutover): `ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`
-- DNS: `test.bjblabs.com` CNAME → tunnel (ready after nameserver cutover)
-- Tunnels can be created via API (`POST /accounts/{acct}/cfd_tunnel`) — no `cloudflared tunnel login` needed
-- Check status: `curl -s ... /cfd_tunnel/<id>` with bearer token (see scripts)
-
-## DNS Cutover (2026-03-17)
-
-- Nameservers switched to Cloudflare (`ximena.ns.cloudflare.com`, `yew.ns.cloudflare.com`) — zone **active**
-- All 14 Route 53 records replicated; hosted zone preserved as rollback (`Z0806990T0ZB8GBKDCD9`)
-- Route 53 is the domain registrar; update via `aws route53domains update-domain-nameservers`
-- `anki-renderer.bjblabs.com` CNAME updated to tunnel (proxied) — serving from Mac Mini
-- `legalpodcast.bjblabs.com` still on CloudFront (`proxied: false`) — pending Issue #9
-- Route 53 zone deletion eligible after 2026-03-31
-- Route 53 export: `docs/route53-export.json`, runbook: `docs/dns-cutover-runbook.md`
-
-## Cloudflare Email Routing (LIVE as of 2026-03-18)
-
-- Enabled and tested — podcast@ and catch-all forward to `ben.bateman.email@gmail.com`
-- MX: Cloudflare (`route1/2/3.mx.cloudflare.net`); verify with `dig MX bjblabs.com +short`
-- Rules API: `/zones/{zone_id}/email/routing/rules` (catch-all: `.../rules/catch_all`)
-- Feature enable/destination addresses require dashboard (account-level perms)
-- **Impact:** Old SES MX deleted — legal podcast email pipeline broken until Issue #9
-
-## Cloudflare Zero Trust (NOT YET ENABLED)
-
-- Documentation: `docs/zero-trust-setup.md` (repo), `~/services/config/zero-trust-setup.md` (Mac Mini)
-- Current API token lacks Access/Zero Trust permissions — setup requires dashboard
-- Not blocking Issue #7 (OpenClaw deployment)
-
-## Service Routing Architecture
-
-- Internet → Cloudflare (proxied CNAME) → cloudflared tunnel → Caddy (:80) → service
-- cloudflared has single catch-all ingress rule → Caddy handles host-based routing
-- Add new services: (1) Caddy host-matched route, (2) Cloudflare CNAME DNS record
-- Deploy webhooks: Python HTTP server on localhost, Caddy proxies `/_deploy` path to it, GitHub Actions POSTs tarball
-- `openclaw.bjblabs.com` → `localhost:18789` (gateway, LIVE)
-- `openclaw.bjblabs.com/gmail-pubsub` → `localhost:8788` (gog watch serve, webhook)
-- `anki-renderer.bjblabs.com` → file_server from `~/services/anki-renderer/dist/` (LIVE)
-
-## Anki Renderer on Mac Mini (LIVE as of 2026-03-18)
-
-- Static Vite demo site served by Caddy `file_server`
-- Files: `~/services/anki-renderer/dist/` (built from anki-renderer repo `demo/`)
-- **CI/CD:** Push to main → CI → deploy workflow → tarball POST to webhook → extracted to dist/
-- **Deploy webhook:** `~/services/anki-renderer/deploy-webhook.py` on port 9001 (launchd: `com.anki-renderer.deploy-webhook`)
-- **Secret:** `~/services/anki-renderer/.deploy-secret` (600 perms), mirrored as `DEPLOY_WEBHOOK_SECRET` GitHub secret
-- **Caddy route:** `/_deploy` path → reverse_proxy localhost:9001
-- **Manual deploy:** `scp -r ~/AI/Projects/anki-renderer/demo/dist/* mac-mini:~/services/anki-renderer/dist/`
-- **Remaining:** delete AWS stack (#19)
-
-## OpenClaw on Mac Mini (DEPLOYED as of 2026-03-18)
-
-- **Version:** v2026.3.12 (pinned — HEAD has plugin validation regression)
-- **Containers:** `openclaw-gateway` (healthy), `openclaw-sandbox-browser` (healthy)
-- **Ports:** 18789 (gateway), 18790 (bridge), 8788 (webhook)
-- **Directory:** `~/services/openclaw/` (compose, .env, .openclaw, repo, sandbox-browser-custom)
-- **Build context:** `~/services/openclaw/repo/` (cloned from github.com/openclaw/openclaw)
-- Start Docker headlessly: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
-- Start OpenClaw: `cd ~/services/openclaw && docker compose up -d`
-- **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog` → `/usr/local/bin/gog:ro`
-- **Gmail watcher:** LIVE — gog watch serve on 0.0.0.0:8788, Pub/Sub pushes to openclaw.bjblabs.com/gmail-pubsub
-- **Claude auth:** Token in `auth-profiles.json` (not env vars). All tiers verified: Opus (default), Sonnet (fallback #1), Haiku (fallback #2)
-- **Remaining:** Decommission EC2 (#36) — Phase 2 after 2026-03-25
-- Full ARM64 notes: `docs/arm64-notes.md`
-
-## OpenClaw EC2 (STOPPED as of 2026-03-18)
-
-- **Instance:** `i-0cc417431630fdfc5` (t3.medium) — STOPPED, not terminated
-- **EBS:** `vol-049b363e353fd31f9`, **SG:** `sg-084a0cd9295dfe466` (openclaw-sg)
-- Restart if needed: `aws ec2 start-instances --instance-ids i-0cc417431630fdfc5`
-- Phase 2 (terminate + cleanup): after 2026-03-25 — see HANDOFF.md or issue #36 comment
-- Export tarball: `~/services/data/openclaw-export.tar.gz` (on Mac Mini, 304 MB)
-- Full docs: `docs/ec2-export-manifest.md`, `docs/environment-variables.md`
-- No CI configured for this repo
+- Bot: `@ben_mac_mini_alerts_bot`, creds: `~/services/config/alerts/telegram.env` (chmod 600)
 
 ## Gotchas
 
-- `systemsetup` commands emit `Error:-99` on modern macOS — this is cosmetic, settings still apply
-- The firewall `--setglobalstate on` command produces no output on success
-- Remote user is `ben` (lowercase), not `Ben` — despite the Mac hostname showing "Ben"
-- SSH non-interactive sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
-- Docker Desktop `credsStore: desktop` uses macOS keychain, fails in SSH sessions (keychain locked)
-- Docker Desktop installer: `/Applications/Docker.app/Contents/MacOS/install --accept-license --user ben`
-- Docker Desktop doesn't auto-start via SSH — use `com.docker.backend --start-docker-desktop`
-- cloudflared arg order matters: `cloudflared tunnel --config <path> run` (--config before run)
-- OpenClaw sandbox-browser needs custom CDP proxy for Host header rewriting (Chromium rejects Docker service names)
-- OpenClaw non-loopback binding requires `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
-- Docker bridge networking: services bound to 127.0.0.1 inside container are unreachable via port mapping — use 0.0.0.0
-- x86_64 Playwright browsers from EC2 export are incompatible with ARM64 — delete `.playwright-browsers/`
-- `launchctl load/unload/bootstrap` fails via SSH (exit 134) — launchd needs interactive login session. Use `nohup <cmd> &` over SSH; LaunchAgents will auto-start on next GUI login/reboot
+- `systemsetup` emits `Error:-99` on modern macOS — cosmetic, settings apply
+- SSH sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
+- Docker `credsStore: desktop` fails in SSH (keychain locked) — removed from config.json
+- Docker Desktop won't start via `open -a Docker` over SSH — use `com.docker.backend` command
+- cloudflared arg order: `tunnel --config <path> run` (--config before run)
+- `launchctl` fails via SSH (exit 134) — use `nohup` over SSH; LaunchAgents work on GUI login/reboot
+- Docker bridge: 127.0.0.1 inside container unreachable via port mapping — bind 0.0.0.0
+- OpenClaw sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + custom CDP proxy
+- OpenClaw non-loopback: set `controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
 
 ## Repo Conventions
 
-- All work tracked via GitHub Issues with `migration` label
-- Issues are numbered sequentially and should be worked in order
-- Direct commits to `main` (no feature branches for autonomous work)
-- Commit messages reference issue numbers: `feat: ... Part of #N` or `Closes #N`
-- HANDOFF.md is gitignored — transient file for human-agent handoffs when interactive steps are needed
-- Documentation deployed to both `docs/` (repo) and `~/services/config/` (Mac Mini)
+- Work tracked via GitHub Issues (`migration` label), sequential numbering
+- Direct commits to `main`, messages reference issues: `feat: ... Part of #N`
+- HANDOFF.md is gitignored — transient for human-agent handoffs
+- Docs deployed to both `docs/` (repo) and `~/services/config/` (Mac Mini)
