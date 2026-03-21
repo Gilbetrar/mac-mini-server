@@ -20,6 +20,8 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Deploy webhook | `anki-renderer.bjblabs.com/_deploy` | Python webhook → port 9001 |
 | OpenClaw | `openclaw.bjblabs.com` | Docker gateway → port 18789 |
 | Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 (GCP: `vast-nectar-487617-j6`, sub: `gog-gmail-watch-push`) |
+| Legal Podcast | `legalpodcast.bjblabs.com` | Docker service → port 9002, static data via Caddy |
+| Legal Podcast admin | `legalpodcast.bjblabs.com/` | Caddy file_server → `~/services/legal-podcast/admin-ui/` |
 
 ## Caddy
 
@@ -54,6 +56,18 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Claude auth:** `auth-profiles.json` (not env vars). Opus default, Sonnet/Haiku fallbacks.
 - **EC2:** `i-0cc417431630fdfc5` STOPPED. Decommission after 2026-03-25 (issue #36).
 
+## Legal Podcast (LIVE)
+
+- **Directory:** `~/services/legal-podcast/` (compose, .env, repo, data, admin-ui)
+- **Start:** `cd ~/services/legal-podcast && docker compose up -d`
+- **Rebuild:** `cd ~/services/legal-podcast && git -C repo pull && docker compose up -d --build`
+- **Port:** 9002 (Express API + webhook)
+- **Data:** `~/services/legal-podcast/data/` (bind-mounted to `/data` in container)
+- **Admin UI:** `~/services/legal-podcast/admin-ui/` (served by Caddy, no build step)
+- **Secrets:** `.env` file (chmod 600), sourced from AWS SSM `/legal-podcast/*`
+- **Email webhook:** Cloudflare Email Worker → `POST /webhooks/email` with `X-Webhook-Secret` header
+- **Missing:** RESEND_API_KEY (email notifications won't send until configured)
+
 ## Docker Desktop
 
 - Settings: `~/Library/Group Containers/group.com.docker/settings-store.json` (4 CPUs, 8GB RAM)
@@ -65,11 +79,11 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 
 ## Health Checks (LIVE)
 
-- **Script:** `~/services/scripts/health-check.sh` — checks 8 services
+- **Script:** `~/services/scripts/health-check.sh` — checks 10 services
 - **Schedule:** launchd `com.bjblabs.healthcheck`, every 5 minutes
 - **Alerts:** Telegram on failure, recovery notifications, idempotent (state files in `~/services/data/health-check/`)
 - **Logs:** `~/services/data/health-check/health-check.log` (auto-trimmed at 10k lines)
-- **Checks:** caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, deploy-webhook, cloudflare-tunnel (external)
+- **Checks:** caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, legal-podcast, legal-podcast-docker, deploy-webhook, cloudflare-tunnel (external)
 
 ## Backups (LIVE)
 
@@ -93,6 +107,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - OpenClaw sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + custom CDP proxy
 - OpenClaw non-loopback: set `controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
 - SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes for remote expansion
+- Caddy reload with launchd: NEVER use `caddy start`/`caddy stop` over SSH — launchd (KeepAlive) will spawn duplicates. Instead `killall caddy` and let launchd restart with the updated Caddyfile on disk.
 
 ## Repo Conventions
 

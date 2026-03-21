@@ -482,3 +482,37 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Initially forgot RESEND_API_KEY env var — mock was in place but email.ts still checked for the key before creating the client
+
+---
+
+## Agent Session - Issue #9 / Sub-issue #60
+
+**Worked on:** Issue #9 - Migrate Legal Podcast, Sub-issue #60 - Serve legal podcast from Mac Mini
+
+**What I did:**
+1. Created Dockerfile (multi-stage build) and .dockerignore in legal-podcast repo
+2. Created docker-compose.yml and .env.example in mac-mini-server/services/legal-podcast/
+3. Updated Caddyfile with legalpodcast.bjblabs.com routes (API proxy + static data files + admin UI)
+4. Deployed to Mac Mini: cloned repo, built Docker image, started container
+5. Pulled API keys from AWS SSM Parameter Store to create .env on Mac Mini
+6. Updated DNS CNAME from CloudFront to Cloudflare tunnel
+7. Added health checks for legal-podcast service and Docker container
+8. Copied admin UI static files to Mac Mini
+
+**What I learned:**
+- Multiple Caddy processes can accumulate if caddy start/stop is used while launchd manages Caddy (KeepAlive: true). Use `killall caddy` + let launchd restart to get a clean state with new config.
+- `caddy reload` doesn't work when multiple Caddy processes are running — it reloads one but requests may go to the other.
+- Cloudflare DNS propagation is near-instant for proxied records. Can verify immediately using `--resolve` with the new IP.
+- Docker build for monorepo workspace: use `--filter=@package/name...` with turbo to build only needed packages.
+- SSM parameters for legal-podcast: /legal-podcast/{openai-api-key, replicate-api-token, admin-password, jwt-secret}
+- Email webhook secret stored at ~/services/config/alerts/email-webhook.env on Mac Mini
+- RESEND_API_KEY not yet configured — email notifications won't work until Ben provides this
+
+**Codebase facts discovered:**
+- Legal podcast service runs on port 9002, uses DATA_DIR env var for filesystem storage
+- Admin UI is vanilla HTML/CSS/JS in packages/admin-ui/ (no build step)
+- Service was designed for launchd but issue specified Docker — Docker works fine
+- Legal podcast data files (audio, feed.xml, redlines, images) served directly by Caddy from ~/services/legal-podcast/data/
+
+**Mistakes made:**
+- Ran `caddy start` via SSH while launchd was managing Caddy, creating competing instances. Should have just used `killall caddy` and let launchd restart with the new config file.
