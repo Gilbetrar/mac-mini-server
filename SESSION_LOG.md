@@ -38,159 +38,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #10
-
-**Worked on:** Issue #10 - Monitoring & health checks
-
-**What I did:**
-- Created `scripts/health-check.sh` with 8 service checks: caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, deploy-webhook, cloudflare-tunnel (external)
-- Created `config/com.bjblabs.healthcheck.plist` launchd job (every 5 minutes)
-- Deployed both to Mac Mini, tested — all 8 checks pass
-- Verified Telegram alert delivery works
-- Loaded launchd job — running on schedule
-
-**What I learned:**
-- No CI workflows exist in this repo — no need to wait for CI
-- The deploy-webhook (port 9001) returns non-200 for bare requests, so the check uses `|| [[ $? -eq 22 ]]` (curl error 22 = HTTP error response, meaning the server IS responding)
-- State-file approach for idempotent alerts works well: `.failing` file created on first failure, removed on recovery
-
-**Codebase facts discovered:**
-- `~/services/scripts/` directory didn't exist on Mac Mini before this session
-- `~/services/data/health-check/` is used for logs and alert state files
-- All 8 services were healthy at time of deployment
-
-**Still remaining for issue #10:**
-- Cloudflare external health checks (mentioned in issue but lower priority — the script already does external checks via curl to the public URL)
-- Issue not closed yet — may want Cloudflare health checks added
-
----
-
-## Agent Session - Issue #4 (completion)
-
-**Worked on:** Issue #4 - Cloudflare setup + Tunnel (completing after human auth)
-
-**What I did:**
-- User provided Cloudflare API token (created per handoff instructions)
-- Saved token to ~/services/config/.cloudflare-token (chmod 600)
-- Verified token via Cloudflare API — active and valid
-- Found zone ID for bjblabs.com (9d3c311fe7bd41ecab3830a57a3a51a6)
-- Created tunnel "mac-mini" via Cloudflare API (not cloudflared CLI, since no cert.pem)
-- Saved tunnel credentials JSON to ~/.cloudflared/
-- Deployed config.yml with real tunnel UUID
-- Created DNS CNAME: test.bjblabs.com → tunnel
-- Fixed launchd plist arg order (--config must come before run)
-- Tunnel running with 4 healthy QUIC connections
-
-**What I learned:**
-- Can create tunnels via Cloudflare API with an API token — no need for `cloudflared tunnel login` at all
-- API endpoint: POST /accounts/{acct}/cfd_tunnel with tunnel_secret (base64 random)
-- The API response includes a `credentials_file` object — save it to ~/.cloudflared/<tunnel-id>.json
-- cloudflared arg order: `tunnel --config <path> run` not `tunnel run --config <path>`
-- DNS CNAME for tunnel: point to `<tunnel-id>.cfargotunnel.com` with proxied=true
-
-**Mistakes made:**
-- Initial launchd plist had wrong arg order (`run` before `--config`) — cloudflared showed help instead of running
-
----
-
-## Agent Session - Issue #5 (API rules + updated handoff)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (routing rules via API)
-
-**What I did:**
-- Discovered the API token CAN create/edit/delete email routing rules at zone level (previous agent said it couldn't)
-- Created `podcast@bjblabs.com` → `ben.bateman.email@gmail.com` forwarding rule via API
-- Updated catch-all rule from disabled "drop" to enabled "forward to Gmail" via the `catch_all` endpoint
-- Updated HANDOFF.md to reflect that rules are already created — human only needs to enable Email Routing in dashboard
-
-**What I learned:**
-- The API token has zone-level email routing rule permissions but NOT account-level permissions
-- Zone endpoints that work: GET/POST/PUT/DELETE `/zones/{zone_id}/email/routing/rules`
-- Zone endpoints that fail (auth error): GET `/zones/{zone_id}/email/routing`, POST `/zones/{zone_id}/email/routing/enable`
-- Catch-all rule must be updated via `/email/routing/rules/catch_all` endpoint, NOT by ID
-
-**Mistakes made:**
-- Created redundant `config/email-routing.md` before checking that `docs/email-routing.md` already existed — cleaned up
-
----
-
-## Agent Session - Issue #5 (COMPLETED, 2026-03-18)
-
-**Worked on:** Issue #5 - Cloudflare Email Routing (human completed dashboard steps)
-
-**What I did:**
-- Guided Ben through Cloudflare Dashboard Email Routing setup
-- Advised using `podcast@bjblabs.com` as initial address (real use case from legal podcast)
-- Confirmed deleting old AWS SES MX record was safe (with caveat about legal podcast pipeline)
-- Verified MX records now point to Cloudflare (`route1/2/3.mx.cloudflare.net`)
-- Ben sent test email — confirmed delivery to Gmail
-- Closed issue #5 on GitHub
-
-**What I learned:**
-- Legal podcast project depends on SES email receiving: email → SES → S3 → Lambda (extracts DOCX → generates podcast)
-- Deleting SES MX record breaks that pipeline — must be addressed in Issue #9
-- Cloudflare Email Routing setup wizard requires at least one custom address to get started
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #6
-
-**Worked on:** Issue #6 - Cloudflare Zero Trust
-
-**What I did:**
-- Created comprehensive Zero Trust setup documentation at `docs/zero-trust-setup.md`
-- Copied documentation to Mac Mini at `~/services/config/zero-trust-setup.md`
-- Wrote HANDOFF.md with 3 dashboard steps for Ben (enable free plan, verify OTP, optionally update API token)
-- Signaled PAUSED — dashboard steps require human action
-
-**What I learned:**
-- Current Cloudflare API token does NOT have Access/Zero Trust permissions (returns 403)
-- Zero Trust enrollment and identity provider setup can only be done via dashboard (not API)
-- Issue scope was simplified: OTP instead of Google OAuth, not urgent until first browser-facing service
-- Issue #6 is NOT a dependency for #7 (OpenClaw) per scope clarification comment
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #11
-
-**Worked on:** Issue #11 - Backup strategy
-
-**What I did:**
-1. Created S3 bucket `bjblabs-backups-719390918663` in us-east-1
-2. Created dedicated IAM user `mac-mini-backup` with policy scoped to only the backup bucket
-3. Installed AWS CLI on Mac Mini via Homebrew (wasn't installed despite issue comment saying it was)
-4. Configured AWS credentials on Mac Mini (`~/.aws/credentials` + `~/.aws/config`)
-5. Wrote `scripts/backup.sh` — daily tarball of `config/` + `data/`, excluding logs
-6. Created `config/com.bjblabs.backup.plist` — runs daily at 3am
-7. Wrote `config/restore-procedure.md` — local, S3, and disaster recovery restore paths
-8. Deployed all three files to Mac Mini
-9. Ran backup successfully — 292MB tarball, synced to S3 (~65 seconds)
-10. Verified idempotency — re-run skips if today's backup exists
-11. Tested restore — extracted file from tarball, verified contents match
-12. Loaded launchd job — confirmed running
-
-**What I learned:**
-- AWS CLI was NOT pre-installed on Mac Mini (issue comment was wrong) — `brew install awscli` works fine
-- Backup size is ~292MB, mostly from OpenClaw data (`data/openclaw/` and `openclaw-export.tar.gz`)
-- S3 sync at ~4.5 MiB/s from Mac Mini — acceptable for daily off-site backup
-- No CI workflows in this repo (confirmed from previous session)
-
-**Codebase facts discovered:**
-- `~/services/backups/` directory existed but was empty
-- `~/services/data/` is 317MB, `~/services/config/` is 40K
-- `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin` to PATH for SSH sessions
-
-**Mistakes made:**
-- None
-
----
-
 ## Agent Session - Issue #7 (Sub-issue #31)
 
 **Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issue: openclaw-deployment#31 - Export config & data from EC2)
@@ -333,72 +180,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #8 (Sub-issues #16, #17)
-
-**Worked on:** Issue #8 - Migrate Anki Renderer + DNS cutover (sub-issues anki-renderer#16 and #17)
-
-**What I did:**
-1. Built WASM + demo in anki-renderer repo, deployed to `~/services/anki-renderer/dist/` on Mac Mini
-2. Added Caddy file_server route for `anki-renderer.bjblabs.com`
-3. Updated CNAME from CloudFront to tunnel via Cloudflare API
-4. Verified HTTPS access, exported Route 53 records, wrote DNS cutover runbook
-5. Closed both sub-issues
-
-**What I learned:**
-- cloudflared catch-all = no config changes for new services — just Caddy route + CNAME
-- `scp -r dir/ remote:target/` fails if target doesn't exist; `mkdir -p` first
-- anki-renderer needs both `build:wasm` (Rust→WASM) and `demo:build` (Vite) steps
-
-**Mistakes made:**
-- None.
-
----
-
-## Agent Session - Issue #8 (sub-issue #18)
-
-**Worked on:** Issue #8 - sub-issue anki-renderer#18 - Update CI/CD for Mac Mini deploy
-
-**What I did:**
-- Created deploy webhook server (`scripts/deploy-webhook.py`) with bearer token auth
-- Added Caddy route for `/_deploy` path → webhook on port 9001
-- Created launchd plist for webhook persistence
-- Updated GitHub Actions deploy.yml: replaces CDK deploy with tarball POST
-- Set `DEPLOY_WEBHOOK_SECRET` GitHub secret, verified end-to-end pipeline
-
-**What I learned:**
-- Mac Mini has no Rust/wasm-pack — builds must happen in GitHub Actions
-- Python 3.9.6 (system Python) works for simple HTTP webhook
-- Webhook approach ideal since no public SSH and Zero Trust not set up
-- SSH command expansion: `$(cat ...)` in double-quoted ssh expands locally; use single quotes
-
-**Mistakes made:**
-- Test deploy replaced real demo files — test non-destructively or have restore plan
-
----
-
-## Agent Session - Issue #8 (sub-issue anki-renderer #19)
-
-**Worked on:** anki-renderer #19 - Delete AnkiRendererDemoStack
-
-**What I did:**
-- Surveyed all 8 open issues — most time-gated or dependency-blocked
-- Verified demo works on Mac Mini and DNS is on Cloudflare
-- Inventoried all 15 AWS resources in the CDK stack
-- Found leftover `github-actions-anki-renderer` IAM role (not in CDK stack)
-- Found stale `AWS_ROLE_ARN` GitHub secret to remove
-- Confirmed OIDC provider should NOT be deleted (shared across repos)
-- Wrote HANDOFF.md with cleanup instructions
-
-**What I learned:**
-- CDK stack has auto-delete bucket config, `cdk destroy` handles emptying S3
-- OIDC provider is shared across repos — don't delete per-repo
-- Deploy workflow already fully migrated — no AWS references remain
-
-**Mistakes made:**
-- None
-
----
-
 ## Agent Session - Issue #9 (sub-issue #63)
 
 **Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider
@@ -534,3 +315,25 @@ Raw session history for the mac-mini-server project.
 
 **Remaining for issue #9:**
 - Only #62 (Delete LegalPodcastStack) remains — requires 1+ weeks stability + Ben's approval. Not actionable yet.
+
+---
+
+## Agent Session - Issues #10 and #6
+
+**Worked on:** Issue #10 - Monitoring & health checks (closure), Issue #6 - Cloudflare Zero Trust (HANDOFF)
+
+**What I did:**
+- Verified issue #10 was fully complete: health check script (10 checks) exists, launchd runs every 5 min, Telegram alerts work, all services passing. Closed #10 with note that Cloudflare-native health checks require paid plan — local script includes external tunnel check as equivalent.
+- Assessed issue #6 (Cloudflare Zero Trust): confirmed via API that Access is not enabled (`access.api.error.not_enabled`). Documentation already exists at `docs/zero-trust-setup.md` (committed by previous agent). Created HANDOFF.md for Ben to enable Zero Trust in dashboard (5-min task).
+
+**What I learned:**
+- Cloudflare Access API endpoint: `accounts/{id}/access/apps` — returns clear error when Access not enabled
+- Cloudflare-native health checks require Pro+ plan. The local health check script's external tunnel check (#10 in script) provides equivalent monitoring.
+- Most remaining open issues are time-gated: #7/#36 (EC2 decommission after 3/25), #9/#62 (CDK destroy needs stability), #12 (Route 53 after 3/31), #13 (docs after all migrations)
+
+**Remaining open issues:**
+- #6: Zero Trust — PAUSED, waiting for Ben to enable in dashboard
+- #7: OpenClaw — only EC2 decommission (#36) left, wait until 2026-03-25
+- #9: Legal Podcast — only LegalPodcastStack deletion (#62) left, needs stability + approval
+- #12: Route 53 — wait until 2026-03-31
+- #13: Documentation — depends on all migrations complete
