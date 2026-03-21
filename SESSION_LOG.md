@@ -4,6 +4,33 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #10
+
+**Worked on:** Issue #10 - Monitoring & health checks
+
+**What I did:**
+- Created `scripts/health-check.sh` with 8 service checks: caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, deploy-webhook, cloudflare-tunnel (external)
+- Created `config/com.bjblabs.healthcheck.plist` launchd job (every 5 minutes)
+- Deployed both to Mac Mini, tested — all 8 checks pass
+- Verified Telegram alert delivery works
+- Loaded launchd job — running on schedule
+
+**What I learned:**
+- No CI workflows exist in this repo — no need to wait for CI
+- The deploy-webhook (port 9001) returns non-200 for bare requests, so the check uses `|| [[ $? -eq 22 ]]` (curl error 22 = HTTP error response, meaning the server IS responding)
+- State-file approach for idempotent alerts works well: `.failing` file created on first failure, removed on recovery
+
+**Codebase facts discovered:**
+- `~/services/scripts/` directory didn't exist on Mac Mini before this session
+- `~/services/data/health-check/` is used for logs and alert state files
+- All 8 services were healthy at time of deployment
+
+**Still remaining for issue #10:**
+- Cloudflare external health checks (mentioned in issue but lower priority — the script already does external checks via curl to the public URL)
+- Issue not closed yet — may want Cloudflare health checks added
+
+---
+
 ## Agent Session - Issue #4 (completion)
 
 **Worked on:** Issue #4 - Cloudflare setup + Tunnel (completing after human auth)

@@ -19,7 +19,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Anki Renderer | `anki-renderer.bjblabs.com` | Caddy file_server → `~/services/anki-renderer/dist/` |
 | Deploy webhook | `anki-renderer.bjblabs.com/_deploy` | Python webhook → port 9001 |
 | OpenClaw | `openclaw.bjblabs.com` | Docker gateway → port 18789 |
-| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 |
+| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 (GCP: `vast-nectar-487617-j6`, sub: `gog-gmail-watch-push`) |
 
 ## Caddy
 
@@ -63,6 +63,14 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 
 - Bot: `@ben_mac_mini_alerts_bot`, creds: `~/services/config/alerts/telegram.env` (chmod 600)
 
+## Health Checks (LIVE)
+
+- **Script:** `~/services/scripts/health-check.sh` — checks 8 services
+- **Schedule:** launchd `com.bjblabs.healthcheck`, every 5 minutes
+- **Alerts:** Telegram on failure, recovery notifications, idempotent (state files in `~/services/data/health-check/`)
+- **Logs:** `~/services/data/health-check/health-check.log` (auto-trimmed at 10k lines)
+- **Checks:** caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, deploy-webhook, cloudflare-tunnel (external)
+
 ## Gotchas
 
 - `systemsetup` emits `Error:-99` on modern macOS — cosmetic, settings apply
@@ -74,6 +82,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - Docker bridge: 127.0.0.1 inside container unreachable via port mapping — bind 0.0.0.0
 - OpenClaw sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + custom CDP proxy
 - OpenClaw non-loopback: set `controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
+- SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes for remote expansion
 
 ## Repo Conventions
 
