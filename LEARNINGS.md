@@ -22,6 +22,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 (GCP: `vast-nectar-487617-j6`, sub: `gog-gmail-watch-push`) |
 | Legal Podcast | `legalpodcast.bjblabs.com` | Docker service → port 9002, static data via Caddy |
 | Legal Podcast admin | `legalpodcast.bjblabs.com/` | Caddy file_server → `~/services/legal-podcast/admin-ui/` |
+| NocoDB | `data.bjblabs.com` (pending #15) | Docker → port 8080 |
 
 ## Caddy
 
@@ -37,7 +38,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **DNS:** Cloudflare nameservers active since 2026-03-17. Route 53 zone kept as rollback until 2026-03-31.
 - **Email Routing:** LIVE — `podcast@` → email worker, catch-all → Gmail. Verify: `dig MX bjblabs.com +short`
 - **Email Worker:** `legal-podcast-email-forwarder`, source: `email-worker/`, deploy: `cd email-worker && npx wrangler deploy`
-- **Zero Trust:** NOT enabled, requires dashboard. Not blocking other work.
+- **Zero Trust:** Enabled (Free plan, `bjblabs.cloudflareaccess.com`). See `docs/zero-trust-setup.md`.
 
 ## Anki Renderer (LIVE)
 
@@ -45,7 +46,6 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **CI/CD:** push → GitHub Actions → tarball POST to webhook → extracted to dist/
 - **Webhook:** `~/services/anki-renderer/deploy-webhook.py` (port 9001, launchd managed)
 - **Secret:** `~/services/anki-renderer/.deploy-secret` + `DEPLOY_WEBHOOK_SECRET` GitHub secret
-- AWS stack `AnkiRendererDemoStack` deleted 2026-03-20
 
 ## OpenClaw (LIVE)
 
@@ -67,39 +67,29 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Secrets:** `.env` file (chmod 600), sourced from AWS SSM `/legal-podcast/*`
 - **Email webhook:** Cloudflare Email Worker → `POST /webhooks/email` with `X-Webhook-Secret` header
 - **DNS:** CNAME → Cloudflare tunnel (switched from CloudFront)
-- **Missing:** RESEND_API_KEY (email notifications won't send until configured)
+- **Email:** Resend (`bjblabs.com` domain verified, API key configured in `.env`)
 - **Pending:** LegalPodcastStack deletion (#62) — needs 1+ weeks stability + Ben's approval
 
-## Docker Desktop
+## NocoDB (LIVE — local only, pending DNS/Zero Trust)
 
-- Settings: `~/Library/Group Containers/group.com.docker/settings-store.json` (4 CPUs, 8GB RAM)
-- Start headlessly via SSH: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
+- **Directory:** `~/services/nocodb/` (compose, .env, data)
+- **Start:** `cd ~/services/nocodb && docker compose up -d`
+- **Port:** 8080 (NocoDB admin UI)
+- **Data:** SQLite at `~/services/nocodb/data/noco.db`
+- **Secrets:** `.env` file (chmod 600) — `NC_AUTH_JWT_SECRET`
+- **Pending:** DNS routing (#15), Zero Trust (#16), data migration (#17), backups (#18)
 
-## Telegram Alerts
+## Monitoring & Backups
 
-- Bot: `@ben_mac_mini_alerts_bot`, creds: `~/services/config/alerts/telegram.env` (chmod 600)
-
-## Health Checks (LIVE)
-
-- **Script:** `~/services/scripts/health-check.sh` — checks 10 services
-- **Schedule:** launchd `com.bjblabs.healthcheck`, every 5 minutes
-- **Alerts:** Telegram on failure, recovery notifications, idempotent (state files in `~/services/data/health-check/`)
-- **Logs:** `~/services/data/health-check/health-check.log` (auto-trimmed at 10k lines)
-- **Checks:** caddy process, cloudflared process, caddy HTTP, anki-renderer, openclaw-gateway, openclaw-docker, legal-podcast, legal-podcast-docker, deploy-webhook, cloudflare-tunnel (external)
-
-## Backups (LIVE)
-
-- **Script:** `~/services/scripts/backup.sh` — daily tarball of config/ + data/
-- **Schedule:** launchd `com.bjblabs.backup`, daily at 3am
-- **Local:** `~/services/backups/daily/` (7-day retention), `~/services/backups/weekly/` (4-week, Sundays)
-- **Off-site:** `s3://bjblabs-backups-719390918663/mac-mini/` (IAM user: `mac-mini-backup`, scoped to bucket)
+- **Telegram bot:** `@ben_mac_mini_alerts_bot`, creds: `~/services/config/alerts/telegram.env`
+- **Health checks:** `~/services/scripts/health-check.sh` (10 checks), launchd every 5 min, Telegram alerts
+- **Backups:** `~/services/scripts/backup.sh`, launchd daily 3am, 7-day local + 4-week weekly + S3 off-site
+- **S3 bucket:** `s3://bjblabs-backups-719390918663/mac-mini/` (IAM: `mac-mini-backup`)
 - **Restore docs:** `~/services/config/restore-procedure.md`
-- **Logs:** `~/services/backups/backup.log` (auto-trimmed at 5k lines)
-- Telegram alert on backup failure; idempotent (skips if today's backup exists)
+- **Docker Desktop:** Start via SSH: `nohup /Applications/Docker.app/Contents/MacOS/com.docker.backend --start-docker-desktop > /dev/null 2>&1 &`
 
 ## Gotchas
 
-- `systemsetup` emits `Error:-99` on modern macOS — cosmetic, settings apply
 - SSH sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
 - Docker `credsStore: desktop` fails in SSH (keychain locked) — removed from config.json
 - Docker Desktop won't start via `open -a Docker` over SSH — use `com.docker.backend` command
@@ -108,8 +98,8 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - Docker bridge: 127.0.0.1 inside container unreachable via port mapping — bind 0.0.0.0
 - OpenClaw sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + custom CDP proxy
 - OpenClaw non-loopback: set `controlUi.dangerouslyAllowHostHeaderOriginFallback: true`
-- SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes for remote expansion
-- Caddy reload with launchd: NEVER use `caddy start`/`caddy stop` over SSH — launchd (KeepAlive) will spawn duplicates. Instead `killall caddy` and let launchd restart with the updated Caddyfile on disk.
+- SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes
+- Caddy + launchd: NEVER `caddy start`/`caddy stop` over SSH — launchd (KeepAlive) spawns duplicates. Use `killall caddy` and let launchd restart.
 
 ## Repo Conventions
 

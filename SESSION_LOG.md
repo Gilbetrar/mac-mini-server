@@ -393,3 +393,26 @@ Raw session history for the mac-mini-server project.
 - After 2026-03-25: Work on #7/#36 (EC2 decommission) — needs HANDOFF.md + PAUSED for Ben's approval
 - After ~2026-03-27: Work on #9/#62 (LegalPodcastStack deletion) — needs HANDOFF.md + PAUSED
 - After ~2026-04-01: Work on #12 (Route 53 deletion) — needs HANDOFF.md + PAUSED
+
+---
+
+## Agent Session - Issue #14
+
+**Worked on:** Issue #14 - Deploy NocoDB on Mac Mini via Docker Compose
+
+**What I did:**
+- Created `services/nocodb/docker-compose.yml` in repo
+- Deployed to Mac Mini: created directory, generated JWT secret, created .env
+- Pulled nocodb/nocodb:latest image and started container
+- Verified: HTTP 200, healthcheck passing, data persists across restarts
+- Closed issue #14
+
+**What I learned:**
+- NocoDB deployment is straightforward — single container, SQLite backend, no build step needed
+- No CI configured for this repo (infrastructure/docs only)
+
+**Codebase facts discovered:**
+- Issues #7, #9, #12 are blocked on time-based criteria (EC2 decommission after 2026-03-25, Route 53 after 2+ weeks)
+- NocoDB issues (#14-#21) are the next active workstream
+
+**Mistakes made:** None
