@@ -73,6 +73,12 @@
 		}
 	}
 
+	# NocoDB — self-hosted database
+	@nocodb host data.bjblabs.com
+	handle @nocodb {
+		reverse_proxy localhost:8080
+	}
+
 	# Default — no matching service
 	handle {
 		respond "Mac Mini server is running." 200
