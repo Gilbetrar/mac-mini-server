@@ -265,6 +265,40 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #9 (Sub-issue legal-podcast#58)
+
+**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini (sub-issue: legal-podcast#58 - Design local architecture)
+
+**What I did:**
+1. Explored the entire legal-podcast codebase: all 4 Lambda handlers, shared utilities, CDK stack, admin UI
+2. Created three architecture design documents in the legal-podcast repo:
+   - `docs/local-architecture.md` — Full architecture: Express service on port 9002, filesystem storage, Resend for email, Caddy routing, async background processing
+   - `docs/lambda-to-express-mapping.md` — Lambda → Express route mapping for all handlers + shared utilities
+   - `docs/storage-mapping.md` — S3 prefix → local filesystem path mapping with URL conversion
+3. Incorporated decisions from issue comments: Resend for outbound email, remove Polly, .env for secrets, Cloudflare Email Workers for inbound
+4. Committed to legal-podcast main, pushed, CI passed, closed issue #58
+
+**What I learned:**
+- Legal podcast has 4 Lambda handlers chained via S3 events: email-receiver → document-processor → feed-updater, plus admin-api
+- Pipeline is event-driven (S3 triggers) on AWS but can be simplified to direct function calls on Mac Mini
+- email-receiver gets raw MIME from S3 (SES stores it there), document-processor does text extraction → citation cleaning → TTS → audio, feed-updater regenerates RSS
+- Admin UI is vanilla HTML/CSS/JS with JWT auth — no build step needed
+- Workspace packages (document-processor, citation-cleaner, tts, rss, redline-generator) are all portable — no AWS dependencies
+- Only two touchpoints need replacing: S3 storage (→ filesystem) and SES email (→ Resend)
+- Email pipeline is BROKEN since 2026-03-17 DNS cutover — MX records moved to Cloudflare, SES can no longer receive
+
+**Codebase facts discovered:**
+- legal-podcast is a turborepo monorepo with 8 workspace packages
+- Lambda handlers are in `infra/lib/handlers/` (not the `lambdas/` directory which has older standalone versions)
+- Shared S3 utilities in `infra/lib/handlers/shared/s3.ts` are the single point to replace for storage
+- Shared email utilities in `infra/lib/handlers/shared/email.ts` — only `sendEmail()` touches SES
+- TTS providers: currently Polly + OpenAI + Kokoro; Polly being removed per issue #63
+
+**Mistakes made:**
+- None
+
+---
+
 ## Agent Session - Issue #8 (Sub-issues #16, #17)
 
 **Worked on:** Issue #8 - Migrate Anki Renderer + DNS cutover (sub-issues anki-renderer#16 and #17)
