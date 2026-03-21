@@ -436,3 +436,25 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Created CNAME pointing to `bjblabs.com` instead of the tunnel hostname — caused 530 errors. Fixed by checking existing records for the correct pattern.
+
+---
+
+## Agent Session - Issue #16
+
+**Worked on:** Issue #16 - Secure NocoDB with Cloudflare Zero Trust
+
+**What I did:**
+- Created Cloudflare Access application for `data.bjblabs.com` via API (app ID: `c1b4abb1-0184-4e6b-b812-2b226dc41921`)
+- Created Allow policy for `ben.bateman.email@gmail.com` (email OTP)
+- Verified: `https://data.bjblabs.com` now returns 302 redirect to Cloudflare auth page
+- Updated `docs/zero-trust-setup.md` with NocoDB section
+- Created HANDOFF.md for Service Token creation (requires dashboard)
+
+**What I learned:**
+- The Cloudflare API token has Access: Apps and Policies permission but NOT Access: Service Tokens. Service tokens must be created via dashboard.
+- Access apps + policies can be fully created via API using the documented pattern in zero-trust-setup.md
+
+**Codebase facts discovered:**
+- The API token permission note in docs was accurate — it does have Access permissions now (the "Optional" note about adding them must have been completed)
+
+**Mistakes made:** None
