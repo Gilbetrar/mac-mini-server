@@ -454,3 +454,31 @@ Raw session history for the mac-mini-server project.
 **Mistakes made:**
 - Initial email test expected renderTemplate to remove blank lines left by undefined vars — it only collapses 3+ consecutive newlines, not 2
 - Initial handler tests used per-test temp dirs (beforeEach) but modules cache DATA_DIR once — caused cross-test data leaks
+
+---
+
+## Agent Session - Issue #9 (sub-issue #59, integration test — CLOSED)
+
+**Worked on:** legal-podcast#59 - Build local pipeline service (pipeline integration test)
+
+**What I did:**
+- Added `__tests__/pipeline.integration.test.ts` — 2 tests covering end-to-end pipeline
+- Test 1: Real DOCX fixture → MIME email → webhook → document extraction → citation cleaning → TTS (mocked) → redline generation → RSS feed update → notification email (mocked). Verifies episodes.json, feed.xml, audio file, metadata, source document, and redline all created correctly.
+- Test 2: Email without DOCX attachment → no episode created
+- Used `vi.mock('@legal-podcast/tts')` to mock TTS providers, `vi.mock('resend')` to mock email sending
+- All 51 service tests pass (4 test files), CI green
+- Closed legal-podcast#59 — all acceptance criteria met (Docker excluded per architecture decision in #58)
+
+**What I learned:**
+- `vi.mock()` with ESM workspace packages works — hoisted above imports as expected
+- Resend client is lazily instantiated via getResend() — need RESEND_API_KEY env var set even with mock, because the mock replaces the Resend constructor but getResend() still checks the env var before instantiating
+- Webhook returns 202 immediately, processes async — integration test polls for output files with timeout
+- Building multipart MIME emails manually requires base64 encoding of DOCX and proper boundary markers
+- Real test fixture (112K chars extracted) processes through citation cleaner → 104K chars cleaned — removes ~7K chars of citations
+
+**Codebase facts discovered:**
+- test-fixtures/ has 5 real DOCX legal documents available for integration testing
+- MockTTSProvider already exists in @legal-podcast/tts package but wasn't used here (mocked at module level instead since webhook.ts creates providers internally)
+
+**Mistakes made:**
+- Initially forgot RESEND_API_KEY env var — mock was in place but email.ts still checked for the key before creating the client
