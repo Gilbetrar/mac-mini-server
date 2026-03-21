@@ -429,3 +429,28 @@ Raw session history for the mac-mini-server project.
 **Mistakes made:**
 - First push failed E2E: forgot to update case-sensitive 'openai' to 'OpenAI' in episode table test
 - Forgot to update 'Joanna' to 'Alloy' in voice highlight test
+
+---
+
+## Agent Session - Issue #9 (sub-issue #59, tests)
+
+**Worked on:** legal-podcast#59 - Build local pipeline service (handler & email tests)
+
+**What I did:**
+- Added `__tests__/email.test.ts` — 23 tests covering renderTemplate, formatDuration, formatCost, isBillingError, generateSuccessEmail, generateErrorEmail, generateAdminAlertEmail, DEFAULT_EMAIL_TEMPLATES
+- Added `__tests__/handlers.test.ts` — 20 tests covering health endpoint, webhook auth (secret validation), admin auth (JWT login), episodes CRUD, config management, stats aggregation, email templates CRUD, episode deletion with feed regeneration
+- Installed supertest + @types/supertest as devDependencies for HTTP-level testing
+- All 49 service tests pass, full project CI green (402+ total tests)
+
+**What I learned:**
+- storage.ts captures DATA_DIR at module load time (top-level const). Dynamic imports are cached by the ES module loader, so all tests within a file share one DATA_DIR. Use beforeAll/afterAll for temp dir, and clean data files between tests in beforeEach
+- The admin config PUT handler accepts empty title/description from missing body fields because it falls back to existing?.title. Tests need clean state (no pre-existing feed-config.json) to test the validation path correctly
+
+**Codebase facts discovered:**
+- Previous agent already wrote core service code (server.ts, routes, storage, email, types, logger) — only storage.test.ts existed
+- Architecture design chose "no Docker" (launchd-managed process), overriding the issue's Docker acceptance criteria
+- Issue #59 still open — remaining work: possible integration test with mocked pipeline, but core tests now cover all routes
+
+**Mistakes made:**
+- Initial email test expected renderTemplate to remove blank lines left by undefined vars — it only collapses 3+ consecutive newlines, not 2
+- Initial handler tests used per-test temp dirs (beforeEach) but modules cache DATA_DIR once — caused cross-test data leaks
