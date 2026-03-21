@@ -97,8 +97,55 @@ Health checks run every 5 minutes via `~/services/scripts/health-check.sh`:
 
 Failures alert via Telegram bot.
 
+## Authentication
+
+| Property | Value |
+|----------|-------|
+| Admin email | `ben@bjblabs.com` |
+| Password | Stored in `~/services/nocodb/.admin-creds` (chmod 600) |
+| JWT token | `~/services/nocodb/.api-token` (refresh via sign-in API) |
+
+### API Authentication
+
+```bash
+# Get fresh auth token
+PASS=$(cat ~/services/nocodb/.admin-creds | grep Password | cut -d" " -f4)
+TOKEN=$(curl -s localhost:8080/api/v1/auth/user/signin \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"ben@bjblabs.com\", \"password\": \"$PASS\"}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+echo "$TOKEN" > ~/services/nocodb/.api-token
+```
+
+### API Endpoints
+
+```bash
+# List bases in workspace
+curl -s "localhost:8080/api/v2/meta/workspaces/wqn2mxm7/bases" -H "xc-auth: $TOKEN"
+
+# List records
+curl -s "localhost:8080/api/v1/db/data/noco/{baseId}/{tableId}" -H "xc-auth: $TOKEN"
+
+# Bulk insert records
+curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
+  -H "xc-auth: $TOKEN" -H "Content-Type: application/json" -d '[{...}]'
+```
+
+## Imported Bases
+
+| Base | NocoDB ID | Tables | Records | Status |
+|------|-----------|--------|---------|--------|
+| Ben Readings & Notes | `pz0snc66hf3yi5f` | Readings | 746 | Migrated (excl. attachments) |
+| Contacts | `p4b83cic6kiud9b` | (empty) | — | Base created, tables pending |
+| EA Jobs Database | — | — | — | Blocked by ea-jobs-database#8 |
+
+**Migration notes:**
+- Attachments (Anki Cards field) were skipped — too complex for API migration
+- Formula fields cannot be imported — must be recreated manually
+- Migration script: `scripts/migrate-readings.py`
+
 ## Pending Work
 
-- **Data migration (#17):** Contacts and Readings bases ready to import. EA Jobs base blocked by ea-jobs-database#8 (JD enrichment).
+- **Data migration (#17):** Contacts base tables + data import remaining. EA Jobs blocked by ea-jobs-database#8.
 - **MCP server (#19):** Configure NocoDB MCP for Claude Code access (blocked by #17)
 - **Documentation (#20):** Agent skills and full documentation update (blocked by #17 and #19)

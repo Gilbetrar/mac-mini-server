@@ -467,3 +467,46 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #17 (Part 1: Ben Readings & Notes)
+
+**Worked on:** Issue #17 - Migrate Airtable bases to NocoDB (first base)
+
+**What was done:**
+1. Surveyed open issues: #7, #9, #12 all blocked (waiting on time/approval)
+2. Picked #17 as lowest actionable issue — Contacts and Readings bases are READY
+3. Set up NocoDB admin account (ben@bjblabs.com, secure random password in `~/services/nocodb/.admin-creds`)
+4. Created "Ben Readings & Notes" base in NocoDB (`pz0snc66hf3yi5f`)
+5. Created "Readings" table with 14 fields matching Airtable schema (excl. CreatedTime auto-field and Attachments)
+6. Exported all 746 records from Airtable via MCP (4 paginated batches of 200)
+7. Wrote migration script (`scripts/migrate-readings.py`) that transforms and bulk-inserts
+8. Successfully migrated all 746 records — verified count match
+9. Also created empty "Contacts" base (`p4b83cic6kiud9b`) for next agent to populate
+10. Updated nocodb-setup.md with auth docs, API endpoints, and migration status
+
+**What I learned:**
+- NocoDB v0.301.5 API: workspace-scoped endpoints (`/api/v2/meta/workspaces/:wsId/bases`) work, but direct base endpoints (`/api/v2/meta/bases`) return 403
+- Record CRUD uses v1 path: `/api/v1/db/data/noco/:baseId/:tableId`
+- Bulk insert: `/api/v1/db/data/bulk/noco/:baseId/:tableId` — returns `[]` on success (not the records)
+- JWT tokens expire — need to re-sign-in before API calls
+- NocoDB's "Import from Airtable" feature is UI-only (no API endpoint in this version)
+- Programmatic migration via Airtable MCP + NocoDB API works well for simple tables
+- Airtable MCP returns SingleSelect values as `{id, name, color}` objects — need to extract `name`
+
+**Remaining work for #17:**
+- Contacts base: create 4 tables (Contacts, Companies, Activities, Roles) with correct schemas
+- Import records for all 4 tables (370 + 353 + 109 + 24 = 856 records)
+- Set up linked record fields between tables and populate relationships
+- Recreate formula fields (Activity Name, Title at Company)
+- EA Jobs base: blocked by ea-jobs-database#8
+- Attachments (Anki Cards, Resume, JD File): complex, may need HANDOFF
+
+**Codebase facts discovered:**
+- NocoDB workspace ID: `wqn2mxm7` (Default Workspace)
+- Getting Started base exists by default (can be deleted)
+- NocoDB admin creds stored at: `~/services/nocodb/.admin-creds`, API token at: `~/services/nocodb/.api-token`
+
+**Mistakes made:**
+- Initially created admin with "PLACEHOLDER" password — immediately changed to secure random password
