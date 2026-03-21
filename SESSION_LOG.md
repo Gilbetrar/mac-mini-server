@@ -505,3 +505,34 @@ Raw session history for the mac-mini-server project.
 - NocoDB data: `~/services/nocodb/data/noco.db` (SQLite, ~2.4MB currently)
 
 **Issue status:** Closed. All acceptance criteria met.
+
+---
+
+## Agent Session - Documentation Cleanup (Iteration 6)
+
+**Worked on:** Documentation cleanup and NocoDB setup docs
+
+**What I did:**
+- Committed previously uncommitted files: AGENTS.md, README.md, updated email-routing.md
+- Added NocoDB to README.md Live Services table
+- Created `docs/nocodb-setup.md` with full NocoDB infrastructure documentation (prep for #20)
+- Ran infrastructure health check — all 10 services healthy
+- Surveyed all open issues for actionable work
+
+**Issue assessment (all blocked):**
+- #7 (OpenClaw migration): EC2 decommission blocked until 2026-03-25
+- #9 (Legal Podcast migration): LegalPodcastStack deletion needs 1+ weeks stability (deployed 2026-03-20)
+- #12 (Route 53 deletion): Blocked until 2026-03-31 (DNS cutover was 2026-03-17, needs 2+ weeks)
+- #17 (Airtable → NocoDB): Blocked by ea-jobs-database#8 (still open)
+- #19 (NocoDB MCP): Blocked by #17
+- #20 (NocoDB docs/skills): Blocked by #17 and #19 (partially addressed with nocodb-setup.md)
+- #21 (Merge EA Jobs into Contacts): Blocked by #17
+
+**What I learned:**
+- This repo has no CI pipeline or package.json — it's purely infrastructure/docs
+- NocoDB v0.301.5 is running, API accessible locally at localhost:8080
+- NocoDB admin credentials are not stored in .env (set up via UI on first access)
+- All infrastructure is stable: 10/10 health checks pass
+
+**Codebase facts discovered:**
+- Uncommitted files from previous sessions can accumulate — agents should check git status for orphaned docs work
