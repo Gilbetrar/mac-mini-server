@@ -337,3 +337,59 @@ Raw session history for the mac-mini-server project.
 - #9: Legal Podcast — only LegalPodcastStack deletion (#62) left, needs stability + approval
 - #12: Route 53 — wait until 2026-03-31
 - #13: Documentation — depends on all migrations complete
+
+---
+
+## Agent Session - Issues #6, #13 (2026-03-21)
+
+**Worked on:** Issue #6 - Cloudflare Zero Trust (COMPLETED), Resend API key setup, Issue #13 - Documentation cleanup
+
+**What I did:**
+1. Enabled Cloudflare Zero Trust via dashboard (Playwright): Free plan ($0/month), team domain `bjblabs.cloudflareaccess.com`, PayPal billing, verified via API
+2. Closed issue #6, deleted HANDOFF.md
+3. Created Resend account, added bjblabs.com domain with DKIM/SPF/MX DNS records in Cloudflare
+4. Generated Resend API key (`legal-podcast`), configured in `~/services/legal-podcast/.env`, restarted container — domain verified
+5. Created Asana task "Complete Mac Mini Migration — AWS Decommission" with 5 dated subtasks for remaining cleanup
+6. Documentation cleanup (issue #13):
+   - Updated LEARNINGS.md: Zero Trust enabled, RESEND_API_KEY configured
+   - Updated docs/email-routing.md: webhook endpoint is live, routes table corrected
+   - Updated docs/zero-trust-setup.md: marked initial setup as completed
+   - Updated global CLAUDE.md: migration complete, Legal Podcast live, routing updated
+   - Updated memory files: mac-mini-server.md and MEMORY.md reflect current state
+   - Created README.md and AGENTS.md for the project
+
+**Remaining open issues:**
+- #7: OpenClaw — EC2 decommission after 2026-03-25
+- #9: Legal Podcast — LegalPodcastStack deletion after stability period
+- #12: Route 53 — delete after 2026-03-31
+- #13: Documentation — closing with this session
+
+---
+
+## Agent Session - Issue #12 Prep
+
+**Worked on:** Issue #12 - Delete Route 53 hosted zone (prep work)
+
+**What I did:**
+1. Surveyed all open issues: #7, #9, #12 — all time-blocked
+   - #7/#36: EC2 decommission blocked until 2026-03-25
+   - #9/#62: LegalPodcastStack deletion needs 1+ weeks stability (deployed 2026-03-20)
+   - #12: Route 53 deletion needs 2+ weeks after DNS cutover (2026-03-17)
+2. Verified all three services healthy (HTTP 200): anki-renderer, openclaw, legalpodcast
+3. Verified DNS fully on Cloudflare: NS, MX, all subdomains resolving via Cloudflare proxy IPs
+4. Exported final Route 53 records to `docs/route53-final-export.json` (15 records)
+   - Updated from prior export (which still had the deleted anki-renderer CloudFront A record)
+   - Added metadata: export date, hosted zone ID, note about non-authoritative status
+
+**What I learned:**
+- All remaining issues (#7, #9, #12) are in waiting/stability periods — no implementation work possible until dates pass
+- Route 53 zone still has stale records (SES DKIM, ACM validation CNAMEs, old CloudFront aliases) that are harmless since nameservers point to Cloudflare
+
+**Codebase facts discovered:**
+- `docs/route53-export.json` was from an earlier point in time (still had anki-renderer CloudFront record)
+- Issue #12 specifies the export should be at `docs/route53-final-export.json`
+
+**Next actions (for future agents):**
+- After 2026-03-25: Work on #7/#36 (EC2 decommission) — needs HANDOFF.md + PAUSED for Ben's approval
+- After ~2026-03-27: Work on #9/#62 (LegalPodcastStack deletion) — needs HANDOFF.md + PAUSED
+- After ~2026-04-01: Work on #12 (Route 53 deletion) — needs HANDOFF.md + PAUSED

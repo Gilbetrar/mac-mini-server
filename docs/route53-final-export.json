@@ -1,0 +1,166 @@
+{
+    "ExportDate": "2026-03-21",
+    "HostedZoneId": "Z0806990T0ZB8GBKDCD9",
+    "HostedZoneName": "bjblabs.com.",
+    "RecordCount": 15,
+    "Note": "Final export before hosted zone deletion. DNS moved to Cloudflare 2026-03-17. This zone is no longer authoritative.",
+    "ResourceRecordSets": [
+        {
+            "Name": "bjblabs.com.",
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "10 inbound-smtp.us-east-1.amazonaws.com"
+                }
+            ]
+        },
+        {
+            "Name": "bjblabs.com.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-409.awsdns-51.com."
+                },
+                {
+                    "Value": "ns-677.awsdns-20.net."
+                },
+                {
+                    "Value": "ns-2040.awsdns-63.co.uk."
+                },
+                {
+                    "Value": "ns-1507.awsdns-60.org."
+                }
+            ]
+        },
+        {
+            "Name": "bjblabs.com.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-409.awsdns-51.com. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        },
+        {
+            "Name": "_dmarc.bjblabs.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DMARC1; p=none;\""
+                }
+            ]
+        },
+        {
+            "Name": "mgdm4ihc76raspregyazkbppxvacrwyy._domainkey.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "mgdm4ihc76raspregyazkbppxvacrwyy.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "px5p3qbrie4g553ni47x7ojk5aeqdbh4._domainkey.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "px5p3qbrie4g553ni47x7ojk5aeqdbh4.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "rrsm5qcgxj37eqtnlywlsfiyyd2lnvol._domainkey.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "rrsm5qcgxj37eqtnlywlsfiyyd2lnvol.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "_543fc26d5027716cfc24d20b983a5493.anki-renderer.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_4d18543e67133f5c1874b33aed0b3953.jkddzztszm.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "legalpodcast.bjblabs.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d2og2g96yl6x9g.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "legalpodcast.bjblabs.com.",
+            "Type": "AAAA",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d2og2g96yl6x9g.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "_c8a5b9fe01f0aee01a3ba7c0a54f82fd.legalpodcast.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "_71e1c47b4415f9dd425c00c07207cd9e.jkddzztszm.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_dmarc.www.bjblabs.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DMARC1; p=none;\""
+                }
+            ]
+        },
+        {
+            "Name": "5xfxs6w2f3qcrancmybzbnavp44hr2pk._domainkey.www.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "5xfxs6w2f3qcrancmybzbnavp44hr2pk.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "a3fzqk62c2qpxaxcnz5vbj5tmma2hqyd._domainkey.www.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "a3fzqk62c2qpxaxcnz5vbj5tmma2hqyd.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "x7ed6sjdzsyy3u3webgsth3a67tzhjh5._domainkey.www.bjblabs.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "x7ed6sjdzsyy3u3webgsth3a67tzhjh5.dkim.amazonses.com"
+                }
+            ]
+        }
+    ]
+}
