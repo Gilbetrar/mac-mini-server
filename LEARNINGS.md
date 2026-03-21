@@ -70,7 +70,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Email:** Resend (`bjblabs.com` domain verified, API key configured in `.env`)
 - **Pending:** LegalPodcastStack deletion (#62) — needs 1+ weeks stability + Ben's approval
 
-## NocoDB (LIVE — local only, pending DNS/Zero Trust)
+## NocoDB (LIVE)
 
 - **Directory:** `~/services/nocodb/` (compose, .env, data)
 - **Start:** `cd ~/services/nocodb && docker compose up -d`
@@ -80,7 +80,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **DNS:** CNAME `data.bjblabs.com` → tunnel (Cloudflare record ID: `01a081695d60c0e228d602a967d02f7c`)
 - **Zero Trust:** Access app `c1b4abb1-0184-4e6b-b812-2b226dc41921`, Allow policy for Ben + Service Token `NocoDB MCP`
 - **Service Token creds:** `~/services/nocodb/.cf-service-token` (CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET)
-- **Pending:** Data migration (#17), backups (#18)
+- **Pending:** Data migration (#17), MCP server (#19)
 
 ## Monitoring & Backups
 

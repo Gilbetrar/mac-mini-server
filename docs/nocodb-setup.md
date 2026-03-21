@@ -99,6 +99,6 @@ Failures alert via Telegram bot.
 
 ## Pending Work
 
-- **Data migration (#17):** Import Airtable bases (Contacts, Readings, EA Jobs)
-- **MCP server (#19):** Configure NocoDB MCP for Claude Code access
-- **Documentation (#20):** Agent skills and full documentation update
+- **Data migration (#17):** Contacts and Readings bases ready to import. EA Jobs base blocked by ea-jobs-database#8 (JD enrichment).
+- **MCP server (#19):** Configure NocoDB MCP for Claude Code access (blocked by #17)
+- **Documentation (#20):** Agent skills and full documentation update (blocked by #17 and #19)
