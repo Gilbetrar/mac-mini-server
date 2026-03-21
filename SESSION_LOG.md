@@ -480,3 +480,28 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Tried to navigate directly to app edit page via UUID — got 404. Used API instead for the policy.
+
+---
+
+## Agent Session - Issue #18
+
+**Worked on:** Issue #18 - Add NocoDB to backup and health check scripts
+
+**What I did:**
+- Extended `health-check.sh` with 2 new checks: NocoDB Docker container running + HTTP health endpoint
+- Extended `backup.sh` with safe SQLite `.backup` snapshot before tarring, includes `nocodb/data/` directory, excludes live DB files (noco.db, WAL, SHM), auto-cleans backup file via trap
+- Extended `restore-procedure.md` with NocoDB section explaining noco-backup.db → noco.db rename
+- Deployed all 3 files to Mac Mini via scp
+- Verified: health check 12/12 OK, backup includes nocodb data, S3 sync successful
+
+**What I learned:**
+- sqlite3 `.backup` command does NOT expand `~` — must use `$HOME` (bash expands it before passing)
+- NocoDB health endpoint: `http://localhost:8080/api/v1/health`
+- Today's backup already existed from 3am launchd run; had to delete to test new script
+- SQLite `.backup` creates consistent snapshot without modifying source DB — safe approach for backup
+
+**Codebase facts discovered:**
+- Docker container name for NocoDB is just `nocodb` (not `nocodb-nocodb` like openclaw's `openclaw-openclaw-gateway`)
+- NocoDB data: `~/services/nocodb/data/noco.db` (SQLite, ~2.4MB currently)
+
+**Issue status:** Closed. All acceptance criteria met.
