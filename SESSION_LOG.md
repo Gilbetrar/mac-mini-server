@@ -516,3 +516,21 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Ran `caddy start` via SSH while launchd was managing Caddy, creating competing instances. Should have just used `killall caddy` and let launchd restart with the new config file.
+
+---
+
+## Agent Session - Issue #9 (sub-issues #60 and #61)
+
+**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini (sub-issues #60 and #61)
+
+**What I did:**
+- Verified issue #60 (Serve from Mac Mini) was fully complete: Docker container healthy, Caddy routes working, DNS CNAME pointing to tunnel, email worker deployed. Closed #60.
+- Completed issue #61 (Migrate data from S3): Downloaded 29 files (146 MB) from S3, updated all URLs in feed.xml/episodes.json/feed-config.json from CloudFront/S3 to legalpodcast.bjblabs.com, transferred to Mac Mini via rsync, verified all files accessible through Caddy and public tunnel. Closed #61.
+
+**What I learned:**
+- legalpodcast.bjblabs.com DNS was switched to Cloudflare tunnel by previous agent, but local DNS cache on dev machine was stale (showed CloudFront). Use `--resolve` flag with curl to bypass DNS cache.
+- Mac Mini's `mac-mini-backup` IAM user can't access the legal podcast S3 bucket. Need to download locally first and rsync to Mac Mini.
+- S3 bucket `admin/` directory is separate from the data directory — admin UI is at `~/services/legal-podcast/admin-ui/`, data at `~/services/legal-podcast/data/`.
+
+**Remaining for issue #9:**
+- Only #62 (Delete LegalPodcastStack) remains — requires 1+ weeks stability + Ben's approval. Not actionable yet.

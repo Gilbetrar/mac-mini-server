@@ -62,11 +62,13 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Start:** `cd ~/services/legal-podcast && docker compose up -d`
 - **Rebuild:** `cd ~/services/legal-podcast && git -C repo pull && docker compose up -d --build`
 - **Port:** 9002 (Express API + webhook)
-- **Data:** `~/services/legal-podcast/data/` (bind-mounted to `/data` in container)
+- **Data:** `~/services/legal-podcast/data/` (bind-mounted to `/data` in container) — migrated from S3 (29 files, 146 MB)
 - **Admin UI:** `~/services/legal-podcast/admin-ui/` (served by Caddy, no build step)
 - **Secrets:** `.env` file (chmod 600), sourced from AWS SSM `/legal-podcast/*`
 - **Email webhook:** Cloudflare Email Worker → `POST /webhooks/email` with `X-Webhook-Secret` header
+- **DNS:** CNAME → Cloudflare tunnel (switched from CloudFront)
 - **Missing:** RESEND_API_KEY (email notifications won't send until configured)
+- **Pending:** LegalPodcastStack deletion (#62) — needs 1+ weeks stability + Ben's approval
 
 ## Docker Desktop
 
