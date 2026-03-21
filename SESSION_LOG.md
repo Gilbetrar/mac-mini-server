@@ -4,6 +4,40 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #9, Sub-issue #59
+
+**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini → Sub-issue #59 - Build local pipeline service
+
+**What I did:**
+- Created `@legal-podcast/service` workspace package in `packages/service/`
+- Built Express service replacing all 4 Lambda handlers:
+  - `storage.ts` — filesystem backend replacing S3 SDK (same interface: downloadFile, uploadFile, getJson, putJson, fileExists, getFileSize, deleteFile)
+  - `email.ts` — Resend SDK replacing SES for outbound email, all template rendering preserved
+  - `routes/admin.ts` — all admin API routes (login, episodes, config, stats, image upload, email templates, episode delete)
+  - `routes/webhook.ts` — email webhook endpoint + full document processing pipeline (parse MIME → extract DOCX → clean citations → TTS → redline → update feed → notify)
+  - `server.ts` — Express entry point, port 9002, health check at /health
+- Added storage unit tests (6 tests)
+- All checks pass: typecheck, lint, test (402 tests across 8 packages), build
+- Committed and pushed to legal-podcast main, CI green
+
+**What I learned:**
+- TTS package OpenAIProviderConfig uses `useHD` boolean not `model` string
+- TTS voice is passed via TTSOptions at synthesis time, not provider config
+- ReplicateProviderConfig uses `apiToken` and `modelVersion`, not `voice`
+- `@legal-podcast/pipeline` package already exists for core pipeline logic but the Lambda handlers have more complex flow (redline generation, email notifications, metadata storage) that needed to be ported
+
+**Codebase facts discovered:**
+- Monorepo uses ESM, turbo for build orchestration, vitest for tests
+- Existing packages: core, citation-cleaner, document-processor, tts, rss, redline-generator, pipeline, admin-ui
+- Lambda shared/ dir has S3, email, types, errors, logger modules — all needed local equivalents
+- cleanWithDiff from citation-cleaner returns both cleaned text and diff spans for redline generation
+
+**Mistakes made:**
+- Initially used wrong TTS provider config properties (model/voice instead of useHD) — caught by typecheck
+- TypeScript strict mode caught spread override warning — needed to restructure feed config defaults
+
+---
+
 ## Agent Session - Issue #10
 
 **Worked on:** Issue #10 - Monitoring & health checks
