@@ -4,105 +4,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #9, Sub-issue #59
-
-**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini → Sub-issue #59 - Build local pipeline service
-
-**What I did:**
-- Created `@legal-podcast/service` workspace package in `packages/service/`
-- Built Express service replacing all 4 Lambda handlers:
-  - `storage.ts` — filesystem backend replacing S3 SDK (same interface: downloadFile, uploadFile, getJson, putJson, fileExists, getFileSize, deleteFile)
-  - `email.ts` — Resend SDK replacing SES for outbound email, all template rendering preserved
-  - `routes/admin.ts` — all admin API routes (login, episodes, config, stats, image upload, email templates, episode delete)
-  - `routes/webhook.ts` — email webhook endpoint + full document processing pipeline (parse MIME → extract DOCX → clean citations → TTS → redline → update feed → notify)
-  - `server.ts` — Express entry point, port 9002, health check at /health
-- Added storage unit tests (6 tests)
-- All checks pass: typecheck, lint, test (402 tests across 8 packages), build
-- Committed and pushed to legal-podcast main, CI green
-
-**What I learned:**
-- TTS package OpenAIProviderConfig uses `useHD` boolean not `model` string
-- TTS voice is passed via TTSOptions at synthesis time, not provider config
-- ReplicateProviderConfig uses `apiToken` and `modelVersion`, not `voice`
-- `@legal-podcast/pipeline` package already exists for core pipeline logic but the Lambda handlers have more complex flow (redline generation, email notifications, metadata storage) that needed to be ported
-
-**Codebase facts discovered:**
-- Monorepo uses ESM, turbo for build orchestration, vitest for tests
-- Existing packages: core, citation-cleaner, document-processor, tts, rss, redline-generator, pipeline, admin-ui
-- Lambda shared/ dir has S3, email, types, errors, logger modules — all needed local equivalents
-- cleanWithDiff from citation-cleaner returns both cleaned text and diff spans for redline generation
-
-**Mistakes made:**
-- Initially used wrong TTS provider config properties (model/voice instead of useHD) — caught by typecheck
-- TypeScript strict mode caught spread override warning — needed to restructure feed config defaults
-
----
-
-## Agent Session - Issue #7 (Sub-issue #31)
-
-**Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (sub-issue: openclaw-deployment#31 - Export config & data from EC2)
-
-**What I did:**
-- SSH'd to EC2 via Tailscale (`ubuntu@100.90.248.10`), confirmed connectivity
-- Exported `~/.openclaw/`, `~/openclaw/.env`, `docker-compose.yml`, all Dockerfiles, `docker-setup.sh`, `~/.config/gogcli/` into tarball
-- Transferred tarball EC2 → laptop → Mac Mini (`~/services/data/openclaw-export.tar.gz`, 304 MB)
-- Verified file counts match
-- Documented export manifest and environment variables
-
-**What I learned:**
-- EC2 OpenClaw uses Tailscale for access (IP: 100.90.248.10), not a standard SSH alias
-- No Docker volumes in use — everything is bind-mounted from `~/.openclaw/` and `~/.config/gogcli/`
-- Two locally-built Docker images: `openclaw:local` and `openclaw-sandbox-browser:bookworm-slim`
-- Playwright browsers (~250 MB) are the bulk of the export
-
-**Mistakes made:**
-- None
-
----
-
-## Agent Session - Issue #7 / Sub-issue #32
-
-**Worked on:** Issue #32 (openclaw-deployment) - Deploy OpenClaw on Mac Mini
-
-**What I did:**
-1. Extracted EC2 export tarball to `~/services/openclaw/` on Mac Mini
-2. Cloned OpenClaw repo (v2026.3.12) for ARM64 build context
-3. Built `openclaw:local` image with `OPENCLAW_INSTALL_BROWSER=1` (~4.5 GB, native ARM64)
-4. Built custom `openclaw-sandbox-browser:bookworm-slim` with CDP Host-header proxy (~1.5 GB)
-5. Created adapted `docker-compose.yml` and `.env` with Mac Mini paths
-6. Both containers running and healthy on Mac Mini
-
-**What I learned:**
-- Docker Desktop on Mac Mini doesn't auto-start via SSH — use `nohup com.docker.backend --start-docker-desktop`
-- OpenClaw HEAD (main) has plugin validation regression — pinned to v2026.3.12
-- Non-loopback gateway binding requires `dangerouslyAllowHostHeaderOriginFallback: true`
-- x86_64 Playwright browsers from EC2 incompatible with ARM64 — use image-built browsers
-- Docker Desktop on macOS handles uid mapping transparently via VirtioFS
-
-**Mistakes made:**
-- First tried building from HEAD — wasted time on plugin validation errors before discovering v2026.3.12 works
-- Initially forgot `OPENCLAW_BROWSER_NO_SANDBOX` env var — sandbox-browser healthcheck failed silently
-
----
-
-## Agent Session - Issue #7 (Sub-issue #33)
-
-**Worked on:** openclaw-deployment#33 - Wire OpenClaw through Caddy + Cloudflare Tunnel
-
-**What I did:**
-1. Updated Caddyfile with host-matched route: `openclaw.bjblabs.com` → `localhost:18789`
-2. Created DNS CNAME in Cloudflare: `openclaw.bjblabs.com` → tunnel, proxied
-3. Verified end-to-end: `https://openclaw.bjblabs.com/healthz` returns `{"ok":true}`
-
-**What I learned:**
-- cloudflared catch-all means no config changes needed for new services — just Caddy route + CNAME
-- `launchctl` commands fail via SSH (exit 134) — services started via `nohup` work fine
-
-**Mistakes made:**
-- None significant.
-
----
-
 ## Agent Session - Issue #7 (Sub-issue #34)
 
 **Worked on:** Issue #34 - Reconfigure Gmail Pub/Sub webhook
@@ -536,3 +437,33 @@ Raw session history for the mac-mini-server project.
 
 **Codebase facts discovered:**
 - Uncommitted files from previous sessions can accumulate — agents should check git status for orphaned docs work
+
+---
+
+## Agent Session - Issue #9 (sub-issue #62)
+
+**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini → Preparing handoff for sub-issue #62 (Delete LegalPodcastStack)
+
+**What I did:**
+- Surveyed all open issues: #7, #9, #12, #17, #19, #20, #21
+- #7 blocked until 2026-03-25 (EC2 decommission waiting period)
+- #12 blocked until 2026-03-31 (Route 53 2-week stability window)
+- #17+ are NocoDB work (lower priority)
+- Chose #9 as most actionable: only sub-issue #62 remains (Delete LegalPodcastStack), needs human approval
+- Verified legal podcast service fully operational on Mac Mini:
+  - Docker container healthy
+  - feed.xml: 200 OK
+  - Admin dashboard: 200 OK
+  - Audio files: 200 OK
+  - Email webhook: 401 (correct auth rejection)
+- Compared S3 vs Mac Mini data: 29/29 data files migrated (33 admin UI files served separately)
+- Inventoried all 49 AWS resources in the stack (S3, CloudFront, Lambda, SES, API Gateway, etc.)
+- Wrote HANDOFF.md with complete verification, exact commands, and post-deletion steps
+
+**What I learned:**
+- S3 bucket has AutoDeleteObjects enabled via CDK, so `cdk destroy` should handle non-empty bucket
+- SES receipt rule for podcast@bjblabs.com is still active but no longer receives mail (MX → Cloudflare since 2026-03-17)
+- The 62 S3 objects vs 29 Mac Mini files discrepancy is the admin UI (served from a separate directory on Mac Mini)
+
+**Mistakes made:**
+- None
