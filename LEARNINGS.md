@@ -19,7 +19,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Anki Renderer | `anki-renderer.bjblabs.com` | Caddy file_server → `~/services/anki-renderer/dist/` |
 | Deploy webhook | `anki-renderer.bjblabs.com/_deploy` | Python webhook → port 9001 |
 | OpenClaw | `openclaw.bjblabs.com` | Docker gateway → port 18789 |
-| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 (GCP: `vast-nectar-487617-j6`, sub: `gog-gmail-watch-push`) |
+| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 |
 | Legal Podcast | `legalpodcast.bjblabs.com` | Docker service → port 9002, static data via Caddy |
 | Legal Podcast admin | `legalpodcast.bjblabs.com/` | Caddy file_server → `~/services/legal-podcast/admin-ui/` |
 | NocoDB | `data.bjblabs.com` | Docker → port 8080 |
@@ -70,10 +70,9 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Start:** `cd ~/services/nocodb && docker compose up -d`
 - **Data:** SQLite at `~/services/nocodb/data/noco.db`
 - **Zero Trust:** Access app + Service Token `NocoDB MCP` (creds: `~/services/nocodb/.cf-service-token`)
-- **Admin:** `ben@bjblabs.com`, password in `~/services/nocodb/.admin-creds`, JWT in `~/services/nocodb/.api-token`
-- **Workspace ID:** `wqn2mxm7` (Default Workspace)
-- **API:** v1 data endpoints (`/api/v1/db/data/noco/:baseId/:tableId`), v2 meta (`/api/v2/meta/workspaces/:wsId/bases`)
-- **Bases:** Readings (`pz0snc66hf3yi5f`, 746 records migrated), Contacts (`p4b83cic6kiud9b`, tables pending)
+- **Admin:** `ben.bateman.email@gmail.com`, password in `~/services/nocodb/.admin-creds`, JWT in `~/services/nocodb/.api-token`
+- **API:** v1 data (`/api/v1/db/data/noco/:baseId/:tableId`), v2 meta (`/api/v2/meta/workspaces/:wsId/bases`)
+- **Bases:** Readings (746 records), Contacts (856 records across 4 tables). IDs in `docs/nocodb-setup.md`
 
 ## Monitoring & Backups
 
@@ -85,18 +84,20 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 ## Gotchas
 
 - SSH sessions have minimal PATH — `~/.zshenv` adds `/usr/local/bin` and `/opt/homebrew/bin`
-- Docker over SSH: `credsStore: desktop` fails (keychain locked, removed from config.json); `open -a Docker` fails — use `com.docker.backend`
+- Docker over SSH: `credsStore: desktop` fails — removed from config.json; start Docker via `com.docker.backend` (not `open -a Docker`)
 - cloudflared arg order: `tunnel --config <path> run` (--config before run)
-- `launchctl` fails via SSH (exit 134) — use `nohup` over SSH; LaunchAgents work on GUI login/reboot
-- Docker bridge: 127.0.0.1 inside container unreachable via port mapping — bind 0.0.0.0
-- OpenClaw: sandbox-browser needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + CDP proxy; non-loopback needs `dangerouslyAllowHostHeaderOriginFallback: true`
+- `launchctl` fails via SSH (exit 134) — use `nohup`; LaunchAgents work on GUI login/reboot
+- OpenClaw sandbox-browser: needs `OPENCLAW_BROWSER_NO_SANDBOX: "1"` + CDP proxy + `dangerouslyAllowHostHeaderOriginFallback: true`
 - SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes
-- Caddy + launchd: NEVER `caddy start`/`caddy stop` over SSH — launchd (KeepAlive) spawns duplicates. Use `killall caddy` and let launchd restart.
+- Caddy + launchd: NEVER `caddy start`/`caddy stop` — launchd (KeepAlive) spawns duplicates. Use `killall caddy`.
 - Cloudflare DNS CNAME for tunnel must point to `<tunnel-id>.cfargotunnel.com`, NOT apex domain
 - sqlite3 `.backup` doesn't expand `~` — use `$HOME` (bash expands before passing to sqlite3)
+- NocoDB JWT tokens expire frequently — re-authenticate (`POST /api/v1/auth/user/signin`) before API calls
+- NocoDB admin email is `ben.bateman.email@gmail.com` (NOT `ben@bjblabs.com`) — wrong email gives "Invalid credentials"
+- NocoDB select columns need options pre-defined — use `colOptions.options` (not `dtxp`) to handle commas in option names
+- NocoDB auth fallback: generate JWT directly using secret from `.env` (`NC_AUTH_JWT_SECRET`) + user ID from SQLite
 
 ## Repo Conventions
 
-- Work tracked via GitHub Issues (`migration` label), sequential numbering
-- Direct commits to `main`, messages reference issues: `feat: ... Part of #N`
+- GitHub Issues (`migration` label), direct commits to `main`: `feat: ... Part of #N`
 - HANDOFF.md is gitignored — transient for human-agent handoffs

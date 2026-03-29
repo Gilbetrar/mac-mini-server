@@ -136,16 +136,28 @@ curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
 | Base | NocoDB ID | Tables | Records | Status |
 |------|-----------|--------|---------|--------|
 | Ben Readings & Notes | `pz0snc66hf3yi5f` | Readings | 746 | Migrated (excl. attachments) |
-| Contacts | `p4b83cic6kiud9b` | (empty) | — | Base created, tables pending |
+| Contacts | `p4b83cic6kiud9b` | Contacts, Companies, Activities, Roles | 856 total | Migrated (excl. attachments & links) |
 | EA Jobs Database | — | — | — | Blocked by ea-jobs-database#8 |
 
+### Contacts Base Tables
+
+| Table | NocoDB Table ID | Records | Notes |
+|-------|----------------|---------|-------|
+| Contacts | `mor9pdbxxz7i6gy` | 370 | Names, emails, tags, expertise |
+| Companies | `mk6e9lanspt27rg` | 353 | Orgs, career tracking fields |
+| Activities | `m3924zh9ss3wmdf` | 109 | Calls, emails, meetings |
+| Roles | `mnoqjf6ajrnx7vn` | 24 | Job applications, comp data |
+
 **Migration notes:**
-- Attachments (Anki Cards field) were skipped — too complex for API migration
-- Formula fields cannot be imported — must be recreated manually
-- Migration script: `scripts/migrate-readings.py`
+- Attachments (Resume, JD File, Anki Cards) were skipped — too complex for API migration
+- Formula fields (`Activity Name`, `Title at Company`) stored as plain text
+- Link columns (Contacts↔Companies, etc.) not yet created — metadata saved in `scripts/contacts-migration-metadata.json`
+- Select/MultiSelect options pre-scanned from Airtable and created with `colOptions` (handles commas in names)
+- Migration scripts: `scripts/migrate-readings.py`, `scripts/migrate-contacts.py`
+- NocoDB admin email is `ben.bateman.email@gmail.com` (not `ben@bjblabs.com`)
 
 ## Pending Work
 
-- **Data migration (#17):** Contacts base tables + data import remaining. EA Jobs blocked by ea-jobs-database#8.
-- **MCP server (#19):** Configure NocoDB MCP for Claude Code access (blocked by #17)
-- **Documentation (#20):** Agent skills and full documentation update (blocked by #17 and #19)
+- **Data migration (#17):** Link columns for Contacts base still needed. EA Jobs blocked by ea-jobs-database#8.
+- **MCP server (#19):** Configure NocoDB MCP for Claude Code access
+- **Documentation (#20):** Agent skills and full documentation update
