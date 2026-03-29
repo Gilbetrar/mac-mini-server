@@ -4,6 +4,37 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #19
+
+**Worked on:** Issue #19 - Configure NocoDB MCP server for Claude Code
+
+**What I did:**
+1. Researched 5 community NocoDB MCP servers; selected `@andrewlwn77/nocodb-mcp` (28 tools, multi-base, clean TypeScript)
+2. Found that NO MCP server supports custom headers (needed for Cloudflare Zero Trust)
+3. Created local patched copy at `~/.claude/mcp-servers/nocodb/`
+4. Patch 1: Added CF-Access-Client-Id/Secret headers from env vars in axios client constructor
+5. Patch 2: Fixed `listBases()` — v1 endpoint `/api/v1/db/meta/projects` returns empty on NocoDB 0.301+; patched to auto-discover workspace via `/api/v1/workspaces/` then list bases via v2 API
+6. Created non-expiring API token via NocoDB API (saved to `~/services/nocodb/.mcp-api-token`)
+7. Configured `~/.claude.json` with nocodb MCP server entry
+8. Verified: `claude mcp list` shows NocoDB ✓ Connected; list_bases returns 3 bases; search_records works
+
+**What I learned:**
+- NocoDB API tokens (xc-token) are different from auth tokens (xc-auth JWT) — API tokens don't expire
+- NocoDB 0.301+ v1 `listBases` returns empty; must use v2 workspace-based endpoint
+- JWT generation requires `token_version` field from `nc_users_v2` table (without it: "Invalid token")
+- Admin password auth was returning "Invalid credentials" — JWT generation via NC_AUTH_JWT_SECRET worked as fallback
+- `@andrewlwn77/nocodb-mcp` uses MCP SDK 0.6.x with line-delimited JSON-RPC (not HTTP Content-Length framing)
+
+**Codebase facts discovered:**
+- NocoDB version: 0.301.5
+- Workspace ID: wqn2mxm7 (Default Workspace)
+- Base IDs: Getting Started (p2f2qkceocys9r9), Ben Readings & Notes (pz0snc66hf3yi5f), Contacts (p4b83cic6kiud9b)
+
+**Mistakes made:**
+- First JWT generation omitted `token_version` — resulted in "Invalid token" error
+
+---
+
 ## Agent Session - Issue #9 (sub-issue #63)
 
 **Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider

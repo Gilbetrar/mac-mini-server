@@ -73,6 +73,10 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Admin:** `ben.bateman.email@gmail.com`, password in `~/services/nocodb/.admin-creds`, JWT in `~/services/nocodb/.api-token`
 - **API:** v1 data (`/api/v1/db/data/noco/:baseId/:tableId`), v2 meta (`/api/v2/meta/workspaces/:wsId/bases`)
 - **Bases:** Readings (746 records), Contacts (856 records across 4 tables). IDs in `docs/nocodb-setup.md`
+- **MCP Server:** Patched `@andrewlwn77/nocodb-mcp` v0.2.2 at `~/.claude/mcp-servers/nocodb/`
+  - Patches: CF service token headers (env vars), v2 workspace-based `listBases()` (v1 returns empty on NocoDB 0.301+)
+  - API token (non-expiring): `~/services/nocodb/.mcp-api-token`, configured in `~/.claude.json`
+  - 28 tools: list_bases, list/search/create/update/delete records, tables, views, attachments, aggregates
 
 ## Monitoring & Backups
 
