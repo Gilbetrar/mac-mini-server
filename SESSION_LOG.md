@@ -458,3 +458,39 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - None
+
+---
+
+## Agent Session - Issue #17
+
+**Worked on:** Issue #17 - Migrate Airtable bases to NocoDB (Contacts base)
+
+**What I did:**
+- Exported all 4 Contacts base tables from Airtable via MCP (Contacts 370, Companies 353, Activities 109, Roles 24)
+- Wrote migration script `scripts/migrate-contacts.py` to create NocoDB tables and bulk insert records
+- Fixed NocoDB auth: admin email is `ben.bateman.email@gmail.com` not `ben@bjblabs.com`
+- Generated JWT token directly using NC_AUTH_JWT_SECRET when password auth failed
+- Fixed select column creation: `dtxp` format breaks on commas in option names, switched to `colOptions`
+- Pre-scanned all records to collect unique select/multiselect values before table creation
+- Successfully migrated all 856 records across 4 tables
+- Saved link metadata to `scripts/contacts-migration-metadata.json` for future linking step
+- Updated docs: nocodb-setup.md, LEARNINGS.md
+
+**What I learned:**
+- NocoDB admin email was `ben.bateman.email@gmail.com` (docs said `ben@bjblabs.com`)
+- NocoDB select columns require options to be pre-defined during table creation
+- `dtxp` format (`'opt1','opt2'`) splits on commas and breaks for values like "Oxford, UK / Remote"
+- `colOptions.options` format handles arbitrary option names correctly
+- NocoDB JWT can be generated directly using the auth secret from `.env` + user ID from SQLite
+- NocoDB bulk insert API returns `[]` on success (not the inserted records)
+- Python stdout buffering hides errors when running migration scripts — use `flush=True` or `-u`
+
+**Codebase facts discovered:**
+- NocoDB SQLite DB path: `~/services/nocodb/data/noco.db` (users table: `nc_users_v2`)
+- Contacts base ID: `p4b83cic6kiud9b`, workspace: `wqn2mxm7`
+- Previous migration (Readings) used similar pattern: export via MCP → transform → push via SSH
+
+**Mistakes made:**
+- First run: didn't pre-define select options → NocoDB rejected records with "Invalid option"
+- First run: used `dtxp` format which breaks on commas in option names
+- First run: stdout buffering hid batch progress (no flush), making debugging harder
