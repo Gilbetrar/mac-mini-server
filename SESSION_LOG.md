@@ -4,83 +4,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #7 (Sub-issue #34)
-
-**Worked on:** Issue #34 - Reconfigure Gmail Pub/Sub webhook
-
-**What I did:**
-1. Found gog binary missing in Docker — downloaded ARM64 Linux v0.12.0 from steipete/gogcli
-2. Added volume mount in docker-compose.yml: `./bin/gog:/usr/local/bin/gog:ro`
-3. Updated `hooks.gmail.serve.bind` from `127.0.0.1` to `0.0.0.0` in openclaw.json
-4. Added Caddy route: `/gmail-pubsub*` on `openclaw.bjblabs.com` → `localhost:8788`
-5. Updated Pub/Sub subscription push endpoint via gcloud on EC2
-6. Verified stale notifications immediately arrived through new path
-
-**What I learned:**
-- Docker bridge: 127.0.0.1 bind inside container unreachable from host — must use 0.0.0.0
-- gcloud CLI is on EC2 but not Mac Mini — used EC2 to manage GCP Pub/Sub
-- GCP project: `vast-nectar-487617-j6`, subscription: `gog-gmail-watch-push`
-
-**Mistakes made:**
-- Shell escaping of `${}` in SSH commands — use `sed` instead of Python string replace
-
----
-
-## Agent Session - Issue #7 (Sub-issues #35 & #36 Phase 1)
-
-**Worked on:** Issue #7 - Sub-issues #35 (Claude auth) and #36 (EC2 decommission Phase 1)
-
-**What I did:**
-- Verified Claude auth token works for all three tiers (Opus, Sonnet, Haiku)
-- Added Haiku as fallback #2
-- Removed empty legacy CLAUDE_* env vars from .env
-- Stopped EC2 instance i-0cc417431630fdfc5 (Phase 1 of #36)
-- Documented Phase 2 (terminate after 2026-03-25) in issue comment
-
-**What I learned:**
-- OpenClaw auth uses `auth-profiles.json`, not environment variables
-- `openclaw agent --agent main --message "..." --json` tests model responses via CLI
-- EC2: i-0cc417431630fdfc5, EBS vol-049b363e353fd31f9, SG sg-084a0cd9295dfe466
-
-**Mistakes made:**
-- None significant.
-
----
-
-## Agent Session - Issue #9 (Sub-issue legal-podcast#58)
-
-**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini (sub-issue: legal-podcast#58 - Design local architecture)
-
-**What I did:**
-1. Explored the entire legal-podcast codebase: all 4 Lambda handlers, shared utilities, CDK stack, admin UI
-2. Created three architecture design documents in the legal-podcast repo:
-   - `docs/local-architecture.md` — Full architecture: Express service on port 9002, filesystem storage, Resend for email, Caddy routing, async background processing
-   - `docs/lambda-to-express-mapping.md` — Lambda → Express route mapping for all handlers + shared utilities
-   - `docs/storage-mapping.md` — S3 prefix → local filesystem path mapping with URL conversion
-3. Incorporated decisions from issue comments: Resend for outbound email, remove Polly, .env for secrets, Cloudflare Email Workers for inbound
-4. Committed to legal-podcast main, pushed, CI passed, closed issue #58
-
-**What I learned:**
-- Legal podcast has 4 Lambda handlers chained via S3 events: email-receiver → document-processor → feed-updater, plus admin-api
-- Pipeline is event-driven (S3 triggers) on AWS but can be simplified to direct function calls on Mac Mini
-- email-receiver gets raw MIME from S3 (SES stores it there), document-processor does text extraction → citation cleaning → TTS → audio, feed-updater regenerates RSS
-- Admin UI is vanilla HTML/CSS/JS with JWT auth — no build step needed
-- Workspace packages (document-processor, citation-cleaner, tts, rss, redline-generator) are all portable — no AWS dependencies
-- Only two touchpoints need replacing: S3 storage (→ filesystem) and SES email (→ Resend)
-- Email pipeline is BROKEN since 2026-03-17 DNS cutover — MX records moved to Cloudflare, SES can no longer receive
-
-**Codebase facts discovered:**
-- legal-podcast is a turborepo monorepo with 8 workspace packages
-- Lambda handlers are in `infra/lib/handlers/` (not the `lambdas/` directory which has older standalone versions)
-- Shared S3 utilities in `infra/lib/handlers/shared/s3.ts` are the single point to replace for storage
-- Shared email utilities in `infra/lib/handlers/shared/email.ts` — only `sendEmail()` touches SES
-- TTS providers: currently Polly + OpenAI + Kokoro; Polly being removed per issue #63
-
-**Mistakes made:**
-- None
-
----
-
 ## Agent Session - Issue #9 (sub-issue #63)
 
 **Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider
@@ -510,3 +433,28 @@ Raw session history for the mac-mini-server project.
 
 **Mistakes made:**
 - Initially created admin with "PLACEHOLDER" password — immediately changed to secure random password
+
+---
+
+## Agent Session - Issue #7 (Sub-issue: openclaw-deployment#36)
+
+**Worked on:** Issue #7 - Migrate OpenClaw from EC2 to Mac Mini (final sub-issue: EC2 decommission)
+
+**What I did:**
+- Verified EC2 `i-0cc417431630fdfc5` stopped since 2026-03-18 (11 days, exceeds 1-week buffer)
+- Verified OpenClaw on Mac Mini: both containers healthy, `openclaw.bjblabs.com` returning 200
+- Identified CloudFormation stack `openclaw-ec2` manages all resources (instance, EBS, SG, IAM)
+- Confirmed EBS volume has DeleteOnTermination=true, VPC is default (no cleanup needed)
+- Wrote HANDOFF.md with exact `aws cloudformation delete-stack` command for Ben to approve
+- Signaled PAUSED — destructive AWS action requires human approval
+
+**What I learned:**
+- The EC2 resources are managed by CloudFormation stack `openclaw-ec2`, so stack deletion is cleaner than individual resource deletion
+- EBS volume auto-deletes on instance termination (DeleteOnTermination=true)
+
+**Codebase facts discovered:**
+- CloudFormation stack: `openclaw-ec2` (resources: EC2, SG, IAM role/profile)
+- Associated VPC is the default VPC — no OpenClaw-specific networking to clean up
+
+**Mistakes made:**
+- None
