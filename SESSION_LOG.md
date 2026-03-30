@@ -33,106 +33,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #9 / Sub-issue #60
-
-**Worked on:** Issue #9 - Migrate Legal Podcast, Sub-issue #60 - Serve legal podcast from Mac Mini
-
-**What I did:**
-1. Created Dockerfile (multi-stage build) and .dockerignore in legal-podcast repo
-2. Created docker-compose.yml and .env.example in mac-mini-server/services/legal-podcast/
-3. Updated Caddyfile with legalpodcast.bjblabs.com routes (API proxy + static data files + admin UI)
-4. Deployed to Mac Mini: cloned repo, built Docker image, started container
-5. Pulled API keys from AWS SSM Parameter Store to create .env on Mac Mini
-6. Updated DNS CNAME from CloudFront to Cloudflare tunnel
-7. Added health checks for legal-podcast service and Docker container
-8. Copied admin UI static files to Mac Mini
-
-**What I learned:**
-- Multiple Caddy processes can accumulate if caddy start/stop is used while launchd manages Caddy (KeepAlive: true). Use `killall caddy` + let launchd restart to get a clean state with new config.
-- `caddy reload` doesn't work when multiple Caddy processes are running — it reloads one but requests may go to the other.
-- Cloudflare DNS propagation is near-instant for proxied records. Can verify immediately using `--resolve` with the new IP.
-- Docker build for monorepo workspace: use `--filter=@package/name...` with turbo to build only needed packages.
-- SSM parameters for legal-podcast: /legal-podcast/{openai-api-key, replicate-api-token, admin-password, jwt-secret}
-- Email webhook secret stored at ~/services/config/alerts/email-webhook.env on Mac Mini
-- RESEND_API_KEY not yet configured — email notifications won't work until Ben provides this
-
-**Codebase facts discovered:**
-- Legal podcast service runs on port 9002, uses DATA_DIR env var for filesystem storage
-- Admin UI is vanilla HTML/CSS/JS in packages/admin-ui/ (no build step)
-- Service was designed for launchd but issue specified Docker — Docker works fine
-- Legal podcast data files (audio, feed.xml, redlines, images) served directly by Caddy from ~/services/legal-podcast/data/
-
-**Mistakes made:**
-- Ran `caddy start` via SSH while launchd was managing Caddy, creating competing instances. Should have just used `killall caddy` and let launchd restart with the new config file.
-
----
-
-## Agent Session - Issue #9 (sub-issues #60 and #61)
-
-**Worked on:** Issue #9 - Migrate Legal Podcast to Mac Mini (sub-issues #60 and #61)
-
-**What I did:**
-- Verified issue #60 (Serve from Mac Mini) was fully complete: Docker container healthy, Caddy routes working, DNS CNAME pointing to tunnel, email worker deployed. Closed #60.
-- Completed issue #61 (Migrate data from S3): Downloaded 29 files (146 MB) from S3, updated all URLs in feed.xml/episodes.json/feed-config.json from CloudFront/S3 to legalpodcast.bjblabs.com, transferred to Mac Mini via rsync, verified all files accessible through Caddy and public tunnel. Closed #61.
-
-**What I learned:**
-- legalpodcast.bjblabs.com DNS was switched to Cloudflare tunnel by previous agent, but local DNS cache on dev machine was stale (showed CloudFront). Use `--resolve` flag with curl to bypass DNS cache.
-- Mac Mini's `mac-mini-backup` IAM user can't access the legal podcast S3 bucket. Need to download locally first and rsync to Mac Mini.
-- S3 bucket `admin/` directory is separate from the data directory — admin UI is at `~/services/legal-podcast/admin-ui/`, data at `~/services/legal-podcast/data/`.
-
-**Remaining for issue #9:**
-- Only #62 (Delete LegalPodcastStack) remains — requires 1+ weeks stability + Ben's approval. Not actionable yet.
-
----
-
-## Agent Session - Issues #10 and #6
-
-**Worked on:** Issue #10 - Monitoring & health checks (closure), Issue #6 - Cloudflare Zero Trust (HANDOFF)
-
-**What I did:**
-- Verified issue #10 was fully complete: health check script (10 checks) exists, launchd runs every 5 min, Telegram alerts work, all services passing. Closed #10 with note that Cloudflare-native health checks require paid plan — local script includes external tunnel check as equivalent.
-- Assessed issue #6 (Cloudflare Zero Trust): confirmed via API that Access is not enabled (`access.api.error.not_enabled`). Documentation already exists at `docs/zero-trust-setup.md` (committed by previous agent). Created HANDOFF.md for Ben to enable Zero Trust in dashboard (5-min task).
-
-**What I learned:**
-- Cloudflare Access API endpoint: `accounts/{id}/access/apps` — returns clear error when Access not enabled
-- Cloudflare-native health checks require Pro+ plan. The local health check script's external tunnel check (#10 in script) provides equivalent monitoring.
-- Most remaining open issues are time-gated: #7/#36 (EC2 decommission after 3/25), #9/#62 (CDK destroy needs stability), #12 (Route 53 after 3/31), #13 (docs after all migrations)
-
-**Remaining open issues:**
-- #6: Zero Trust — PAUSED, waiting for Ben to enable in dashboard
-- #7: OpenClaw — only EC2 decommission (#36) left, wait until 2026-03-25
-- #9: Legal Podcast — only LegalPodcastStack deletion (#62) left, needs stability + approval
-- #12: Route 53 — wait until 2026-03-31
-- #13: Documentation — depends on all migrations complete
-
----
-
-## Agent Session - Issues #6, #13 (2026-03-21)
-
-**Worked on:** Issue #6 - Cloudflare Zero Trust (COMPLETED), Resend API key setup, Issue #13 - Documentation cleanup
-
-**What I did:**
-1. Enabled Cloudflare Zero Trust via dashboard (Playwright): Free plan ($0/month), team domain `bjblabs.cloudflareaccess.com`, PayPal billing, verified via API
-2. Closed issue #6, deleted HANDOFF.md
-3. Created Resend account, added bjblabs.com domain with DKIM/SPF/MX DNS records in Cloudflare
-4. Generated Resend API key (`legal-podcast`), configured in `~/services/legal-podcast/.env`, restarted container — domain verified
-5. Created Asana task "Complete Mac Mini Migration — AWS Decommission" with 5 dated subtasks for remaining cleanup
-6. Documentation cleanup (issue #13):
-   - Updated LEARNINGS.md: Zero Trust enabled, RESEND_API_KEY configured
-   - Updated docs/email-routing.md: webhook endpoint is live, routes table corrected
-   - Updated docs/zero-trust-setup.md: marked initial setup as completed
-   - Updated global CLAUDE.md: migration complete, Legal Podcast live, routing updated
-   - Updated memory files: mac-mini-server.md and MEMORY.md reflect current state
-   - Created README.md and AGENTS.md for the project
-
-**Remaining open issues:**
-- #7: OpenClaw — EC2 decommission after 2026-03-25
-- #9: Legal Podcast — LegalPodcastStack deletion after stability period
-- #12: Route 53 — delete after 2026-03-31
-- #13: Documentation — closing with this session
-
----
-
 ## Agent Session - Issue #12 Prep
 
 **Worked on:** Issue #12 - Delete Route 53 hosted zone (prep work)
@@ -501,3 +401,36 @@ Raw session history for the mac-mini-server project.
 **Mistakes made:**
 - Spent significant time on NocoDB auth: JWT generated manually (Python/Node) didn't work even with correct secret — turned out the container's `jsonwebtoken` lib also failed. Password reset worked but only after using the original salt. This should have been the first thing tried.
 - First migration run failed silently (no batch output) because the original script used `json.loads()` error parsing that swallowed the NocoDB validation error about missing select options
+
+---
+
+## Agent Session - Issue #21 (Job Postings Migration)
+
+**Worked on:** Issue #21 - Merge EA Jobs into Contacts database (Job Postings table creation and data migration)
+
+**What I did:**
+1. Created "Job Postings" table in Contacts base with 18 data columns matching EA Jobs schema
+2. Added Company link column (many-to-many) via NocoDB REST API
+3. Added SingleSelect/MultiSelect options to all select columns (Source, Status, Location Type, Salary Currency, Salary Period, Tags)
+4. Wrote and ran `scripts/migrate-job-postings.py` on Mac Mini
+5. Migrated 835 EA Jobs records as Job Postings
+6. Linked 822 Job Postings to Companies via junction table
+7. 13 unlinked are "Various..." aggregate listings (expected)
+8. Enriched 21 existing Company records with website/location from EA Jobs metadata
+
+**What I learned:**
+- NocoDB bulk insert rejects records with SingleSelect values when no options are defined — must add options via `PATCH /api/v2/meta/columns/{colId}` BEFORE inserting data
+- Job Descriptions can be huge (10KB+) — batch size of 25 needed vs normal 100 for bulk insert
+- Junction table columns for "Job Postings" link have spaces in column names (`nc_uts0___Job Postings_id`) — works fine in JSON keys
+- The previous agent created 289 new Company records for unmatched orgs but failed on Job Postings insert — script needed to detect existing companies rather than re-creating
+
+**Codebase facts discovered:**
+- Job Postings table ID: `m78buufldaz365j`
+- Junction table (JP↔Companies): `meyb0jdy3yd9pyp` with columns `nc_uts0___Companies_id` and `nc_uts0___Job Postings_id`
+- Match report has 54 auto-linkable orgs (35 exact + 12 high + 7 confirmed), 289 new orgs created as Companies
+
+**Remaining work for issue #21:**
+- Rename Roles → Applications
+- Add optional link from Applications to Job Postings
+- Delete standalone EA Jobs base
+- Ben needs to review 3 context-needed matches (RAND Corporation, Animal Equality, EA Funds)

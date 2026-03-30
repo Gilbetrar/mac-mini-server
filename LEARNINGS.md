@@ -4,7 +4,7 @@ Distilled patterns for autonomous agents. Keep under 100 lines.
 
 ## Project Overview
 Migration of services from AWS to self-hosted M4 Mac Mini. No CI pipeline — repo is infrastructure/docs only.
-SSH: `ssh mac-mini`, user: `ben`, home: `/Users/ben`, sudo available. Services root: `~/services/`
+SSH: `ssh mac-mini-remote` (Cloudflare Tunnel, works from any network), user: `ben`, home: `/Users/ben`. Services root: `~/services/`
 
 ## Service Routing
 
@@ -15,9 +15,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 | Service | URL | Backend |
 |---------|-----|---------|
 | Anki Renderer | `anki-renderer.bjblabs.com` | Caddy file_server → `~/services/anki-renderer/dist/` |
-| Deploy webhook | `anki-renderer.bjblabs.com/_deploy` | Python webhook → port 9001 |
 | OpenClaw | `openclaw.bjblabs.com` | Docker gateway → port 18789 |
-| Gmail webhook | `openclaw.bjblabs.com/gmail-pubsub` | gog serve → port 8788 |
 | Legal Podcast | `legalpodcast.bjblabs.com` | Docker service → port 9002, static data via Caddy |
 | Legal Podcast admin | `legalpodcast.bjblabs.com/` | Caddy file_server → `~/services/legal-podcast/admin-ui/` |
 | NocoDB | `data.bjblabs.com` | Docker → port 8080 |
@@ -49,8 +47,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Version:** v2026.3.12 (pinned — HEAD has plugin validation regression)
 - **Directory:** `~/services/openclaw/` (compose, .env, .openclaw, repo, sandbox-browser-custom)
 - **Start:** `cd ~/services/openclaw && docker compose up -d`
-- **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog`
-- **Claude auth:** `auth-profiles.json` (not env vars). Opus default, Sonnet/Haiku fallbacks.
+- **gog binary:** v0.12.0 ARM64 Linux, mounted from `~/services/openclaw/bin/gog`. **Claude auth:** `auth-profiles.json` (Opus default, fallbacks).
 
 ## Legal Podcast (LIVE)
 
@@ -70,7 +67,8 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Zero Trust:** Access app + Service Token `NocoDB MCP` (creds: `~/services/nocodb/.cf-service-token`)
 - **Admin:** `ben.bateman.email@gmail.com`, password in `~/services/nocodb/.admin-creds`, JWT in `~/services/nocodb/.api-token`
 - **API:** v1 data (`/api/v1/db/data/noco/:baseId/:tableId`), v2 meta (`/api/v2/meta/workspaces/:wsId/bases`). Bulk insert returns `[]` on success.
-- **Bases:** Readings (746 records), Contacts (856 records, 4 tables, 447 links), EA Jobs (835 records). IDs in `docs/nocodb-setup.md`
+- **Bases:** Readings (746 records), Contacts (5 tables: Contacts, Companies, Activities, Roles, Job Postings), EA Jobs (835 records). IDs in `docs/nocodb-setup.md`
+- **Job Postings table** (`m78buufldaz365j`): 835 records, linked to Companies via junction `meyb0jdy3yd9pyp`. Bulk insert needs batch_size=25 (large Job Description fields)
 - **MCP Server:** Patched `@andrewlwn77/nocodb-mcp` at `~/.claude/mcp-servers/nocodb/` (CF headers + v2 listBases fix). Token: `~/services/nocodb/.mcp-api-token`
 
 ## Monitoring & Backups
@@ -91,7 +89,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - Caddy + launchd: NEVER `caddy start`/`caddy stop` — launchd (KeepAlive) spawns duplicates. Use `killall caddy`.
 - Cloudflare DNS CNAME for tunnel must point to `<tunnel-id>.cfargotunnel.com`, NOT apex domain
 - NocoDB auth: admin is `ben.bateman.email@gmail.com` (NOT `ben@bjblabs.com`). JWTs expire — re-auth via signin endpoint. Password reset: must use the SAME salt from `nc_users_v2.salt` column (stop container first, update SQLite, restart). API tokens (`xc-token`) only work for data ops, NOT admin/meta ops like creating bases — use JWT (`xc-auth`) for those. Create bases via `POST /api/v2/meta/workspaces/{wsId}/bases/` (workspace-scoped endpoint)
-- NocoDB select columns: use `colOptions.options` format, NOT `dtxp` — `dtxp` breaks on commas in option names (e.g. "Oxford, UK"). The MCP `create_table` does NOT populate select options — add them separately via `PATCH /api/v2/meta/columns/{colId}` with `{"colOptions":{"options":[{"title":"..."}]}}`
+- NocoDB select columns: use `colOptions.options` format, NOT `dtxp` — `dtxp` breaks on commas in option names (e.g. "Oxford, UK"). The MCP `create_table` does NOT populate select options — add them separately via `PATCH /api/v2/meta/columns/{colId}` with `{"colOptions":{"options":[{"title":"..."}]}}`. Bulk insert REJECTS records if select values aren't pre-registered as options — always add options BEFORE inserting data
 - NocoDB link columns: create via `POST /api/v2/meta/tables/{id}/columns` with `uidt:"Links",type:"mm",parentId,childId`. Populate via junction tables (`POST /api/v1/db/data/bulk/noco/{baseId}/{mmTableId}`). The `/links/.../records/` endpoint does NOT work in v0.301.5.
 - NocoDB REST API: data endpoints require table IDs (e.g., `mk6e9lanspt27rg`) in URL paths, NOT table titles or names. Format: `/api/v1/db/data/noco/{baseId}/{tableId}`
 - Running scripts on Mac Mini via SSH: `ssh mac-mini-remote 'python3 /tmp/script.py'` — can access NocoDB at localhost:8080 directly, bypassing Zero Trust
