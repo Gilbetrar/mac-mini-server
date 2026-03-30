@@ -4,37 +4,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #19
-
-**Worked on:** Issue #19 - Configure NocoDB MCP server for Claude Code
-
-**What I did:**
-1. Researched 5 community NocoDB MCP servers; selected `@andrewlwn77/nocodb-mcp` (28 tools, multi-base, clean TypeScript)
-2. Found that NO MCP server supports custom headers (needed for Cloudflare Zero Trust)
-3. Created local patched copy at `~/.claude/mcp-servers/nocodb/`
-4. Patch 1: Added CF-Access-Client-Id/Secret headers from env vars in axios client constructor
-5. Patch 2: Fixed `listBases()` — v1 endpoint `/api/v1/db/meta/projects` returns empty on NocoDB 0.301+; patched to auto-discover workspace via `/api/v1/workspaces/` then list bases via v2 API
-6. Created non-expiring API token via NocoDB API (saved to `~/services/nocodb/.mcp-api-token`)
-7. Configured `~/.claude.json` with nocodb MCP server entry
-8. Verified: `claude mcp list` shows NocoDB ✓ Connected; list_bases returns 3 bases; search_records works
-
-**What I learned:**
-- NocoDB API tokens (xc-token) are different from auth tokens (xc-auth JWT) — API tokens don't expire
-- NocoDB 0.301+ v1 `listBases` returns empty; must use v2 workspace-based endpoint
-- JWT generation requires `token_version` field from `nc_users_v2` table (without it: "Invalid token")
-- Admin password auth was returning "Invalid credentials" — JWT generation via NC_AUTH_JWT_SECRET worked as fallback
-- `@andrewlwn77/nocodb-mcp` uses MCP SDK 0.6.x with line-delimited JSON-RPC (not HTTP Content-Length framing)
-
-**Codebase facts discovered:**
-- NocoDB version: 0.301.5
-- Workspace ID: wqn2mxm7 (Default Workspace)
-- Base IDs: Getting Started (p2f2qkceocys9r9), Ben Readings & Notes (pz0snc66hf3yi5f), Contacts (p4b83cic6kiud9b)
-
-**Mistakes made:**
-- First JWT generation omitted `token_version` — resulted in "Invalid token" error
-
----
-
 ## Agent Session - Issue #9 (sub-issue #63)
 
 **Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider
@@ -525,3 +494,35 @@ Raw session history for the mac-mini-server project.
 - First run: didn't pre-define select options → NocoDB rejected records with "Invalid option"
 - First run: used `dtxp` format which breaks on commas in option names
 - First run: stdout buffering hid batch progress (no flush), making debugging harder
+
+---
+
+## Agent Session - Issue #17 (Link Columns) + Issue #20 (Closed)
+
+**Worked on:** Issue #17 - Contacts base link columns; Issue #20 - Documentation (closed)
+
+**What I did:**
+- Closed #20 — all acceptance criteria already met by prior agents. Fixed stale admin email in nocodb-setup.md.
+- Created 7 many-to-many link columns across Contacts base tables (Contacts, Companies, Activities, Roles)
+- Populated all 447 links from Airtable migration metadata into NocoDB junction tables
+- Link relationships: Current Org (199), Past Orgs (40), Contacts↔Activities (112), Contacts↔Roles (9), Companies↔Roles (24), Companies↔Activities (39), Activities↔Roles (24)
+
+**What I learned:**
+- NocoDB link column creation via API: `POST /api/v2/meta/tables/{tableId}/columns` with `uidt: "Links"`, `type: "mm"`, `parentId`, `childId`
+- Creating a link column auto-creates a reverse column on the child table (needs renaming for custom title)
+- Reverse column renaming: `PATCH /api/v2/meta/columns/{columnId}` with `{"title": "new name"}`
+- NocoDB MM links are stored in auto-created junction tables (format: `nc_uts0___nc_m2m_{Table1}_{Table2}`)
+- Junction tables have FK columns named `nc_uts0___{TableName}_id`
+- Can insert directly into junction tables via data API: `POST /api/v1/db/data/noco/{baseId}/{mmTableId}`
+- Bulk insert endpoint: `POST /api/v1/db/data/bulk/noco/{baseId}/{mmTableId}` with array of records
+- Junction tables have UNIQUE constraint on FK pair — prevents duplicate links
+- NocoDB v0.301.5 link data API: the `/links/{columnId}/records/{rowId}` format did NOT work ("Field 'records' not found") — direct junction table insertion was the reliable path
+
+**Codebase facts discovered:**
+- Metadata file `scripts/contacts-migration-metadata.json` maps Airtable IDs → 0-based indices (NocoDB IDs = index + 1)
+- id_mapping is consistent: sequential bulk insert preserves ordering (verified Id=1 maps to first contact)
+
+**Mistakes made:**
+- Test link (Contact 1 → Company 5) was wrong data — should have verified against metadata first
+- populate-contacts-links.py reported 0 inserts due to response parsing error, but data was actually inserted (the bulk API returns different format than expected)
+- Reverse column rename script had a bug: when multiple MM links exist between same table pair, it could rename the wrong column. Worked out due to NocoDB auto-naming matching expected names.

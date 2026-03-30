@@ -5,8 +5,7 @@ Distilled patterns for autonomous agents. Keep under 100 lines.
 ## Project Overview
 
 Migration of services from AWS to self-hosted M4 Mac Mini. No CI pipeline — repo is infrastructure/docs only.
-SSH: `ssh mac-mini`, user: `ben`, home: `/Users/ben`, sudo available.
-Services root: `~/services/` (subdirs: `config/`, `data/`, `backups/`)
+SSH: `ssh mac-mini`, user: `ben`, home: `/Users/ben`, sudo available. Services root: `~/services/`
 
 ## Service Routing
 
@@ -73,10 +72,7 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - **Admin:** `ben.bateman.email@gmail.com`, password in `~/services/nocodb/.admin-creds`, JWT in `~/services/nocodb/.api-token`
 - **API:** v1 data (`/api/v1/db/data/noco/:baseId/:tableId`), v2 meta (`/api/v2/meta/workspaces/:wsId/bases`)
 - **Bases:** Readings (746 records), Contacts (856 records across 4 tables). IDs in `docs/nocodb-setup.md`
-- **MCP Server:** Patched `@andrewlwn77/nocodb-mcp` v0.2.2 at `~/.claude/mcp-servers/nocodb/`
-  - Patches: CF service token headers (env vars), v2 workspace-based `listBases()` (v1 returns empty on NocoDB 0.301+)
-  - API token (non-expiring): `~/services/nocodb/.mcp-api-token`, configured in `~/.claude.json`
-  - 28 tools: list_bases, list/search/create/update/delete records, tables, views, attachments, aggregates
+- **MCP Server:** Patched `@andrewlwn77/nocodb-mcp` at `~/.claude/mcp-servers/nocodb/` (CF headers + v2 listBases fix). Token: `~/services/nocodb/.mcp-api-token`
 
 ## Monitoring & Backups
 
@@ -95,11 +91,9 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - SSH command expansion: `$(cmd)` in double-quoted `ssh mac-mini "..."` expands locally — use single quotes
 - Caddy + launchd: NEVER `caddy start`/`caddy stop` — launchd (KeepAlive) spawns duplicates. Use `killall caddy`.
 - Cloudflare DNS CNAME for tunnel must point to `<tunnel-id>.cfargotunnel.com`, NOT apex domain
-- sqlite3 `.backup` doesn't expand `~` — use `$HOME` (bash expands before passing to sqlite3)
-- NocoDB JWT tokens expire frequently — re-authenticate (`POST /api/v1/auth/user/signin`) before API calls
+- NocoDB JWT tokens expire frequently — re-auth via `POST /api/v1/auth/user/signin` or generate directly with `NC_AUTH_JWT_SECRET` + user ID from SQLite
 - NocoDB admin email is `ben.bateman.email@gmail.com` (NOT `ben@bjblabs.com`) — wrong email gives "Invalid credentials"
-- NocoDB select columns need options pre-defined — use `colOptions.options` (not `dtxp`) to handle commas in option names
-- NocoDB auth fallback: generate JWT directly using secret from `.env` (`NC_AUTH_JWT_SECRET`) + user ID from SQLite
+- NocoDB link columns: create via `POST /api/v2/meta/tables/{id}/columns` with `uidt:"Links",type:"mm",parentId,childId`. Populate by inserting into junction tables directly (`POST /api/v1/db/data/bulk/noco/{baseId}/{mmTableId}`). The `/links/.../records/` endpoint does NOT work in v0.301.5.
 
 ## Repo Conventions
 
