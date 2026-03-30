@@ -4,7 +4,7 @@
 
 Self-hosted NocoDB instance replacing Airtable. Runs as a Docker container on the Mac Mini, accessible at `data.bjblabs.com` behind Cloudflare Zero Trust.
 
-**Status:** Infrastructure live (2026-03-21). Data migration pending (#17).
+**Status:** Live (2026-03-21). Contacts and Readings bases migrated. EA Jobs pending (#17).
 
 ## Architecture
 
@@ -101,7 +101,7 @@ Failures alert via Telegram bot.
 
 | Property | Value |
 |----------|-------|
-| Admin email | `ben@bjblabs.com` |
+| Admin email | `ben.bateman.email@gmail.com` |
 | Password | Stored in `~/services/nocodb/.admin-creds` (chmod 600) |
 | JWT token | `~/services/nocodb/.api-token` (refresh via sign-in API) |
 
@@ -112,7 +112,7 @@ Failures alert via Telegram bot.
 PASS=$(cat ~/services/nocodb/.admin-creds | grep Password | cut -d" " -f4)
 TOKEN=$(curl -s localhost:8080/api/v1/auth/user/signin \
   -H "Content-Type: application/json" \
-  -d "{\"email\": \"ben@bjblabs.com\", \"password\": \"$PASS\"}" \
+  -d "{\"email\": \"ben.bateman.email@gmail.com\", \"password\": \"$PASS\"}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 echo "$TOKEN" > ~/services/nocodb/.api-token
 ```
@@ -158,6 +158,5 @@ curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
 
 ## Pending Work
 
-- **Data migration (#17):** Link columns for Contacts base still needed. EA Jobs blocked by ea-jobs-database#8.
-- **MCP server (#19):** Configure NocoDB MCP for Claude Code access
-- **Documentation (#20):** Agent skills and full documentation update
+- **Data migration (#17):** EA Jobs base blocked by ea-jobs-database#8. Link columns for Contacts base still needed.
+- **EA Jobs merge (#21):** Merge EA Jobs into Contacts base after migration
