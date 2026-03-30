@@ -4,92 +4,6 @@ Raw session history for the mac-mini-server project.
 
 ---
 
-## Agent Session - Issue #9 (sub-issue #63)
-
-**Worked on:** legal-podcast#63 - Remove AWS Polly as TTS provider
-
-**What I did:**
-- Deleted polly-provider.ts and its tests from @legal-podcast/tts package
-- Removed @aws-sdk/client-polly dependency
-- Updated default TTS provider from polly-neural to openai across all files
-- Updated 21 files: handlers, types, admin UI, scripts, CDK stack, tests
-- Removed Polly IAM permissions from CDK stack
-- Fixed E2E test failures (case-sensitive provider name, voice name)
-- All 161 infra tests and 396 package tests pass, CI green
-
-**What I learned:**
-- The legal-podcast monorepo has pre-push lint hooks (turbo lint)
-- E2E tests use Playwright with route interception via mock data
-- The admin UI's formatProvider() capitalizes names (OpenAI not openai)
-- Playwright toContainText is case-sensitive
-- Issue #6 (Cloudflare Zero Trust) is deferred per comment
-- Issue #7/#36 (EC2 decommission) waiting until after 2026-03-25
-
-**Codebase facts discovered:**
-- legal-podcast has 7 workspace packages + infra (CDK) + admin-ui (vanilla JS)
-- Polly references were in 20+ files across handlers, types, UI, scripts, and tests
-- The CLI script (cli.ts) hardcoded PollyProvider, now uses OpenAIProvider
-- generate-samples.ts lists voice configs per provider for voice sample generation
-
-**Mistakes made:**
-- First push failed E2E: forgot to update case-sensitive 'openai' to 'OpenAI' in episode table test
-- Forgot to update 'Joanna' to 'Alloy' in voice highlight test
-
----
-
-## Agent Session - Issue #9 (sub-issue #59, tests)
-
-**Worked on:** legal-podcast#59 - Build local pipeline service (handler & email tests)
-
-**What I did:**
-- Added `__tests__/email.test.ts` — 23 tests covering renderTemplate, formatDuration, formatCost, isBillingError, generateSuccessEmail, generateErrorEmail, generateAdminAlertEmail, DEFAULT_EMAIL_TEMPLATES
-- Added `__tests__/handlers.test.ts` — 20 tests covering health endpoint, webhook auth (secret validation), admin auth (JWT login), episodes CRUD, config management, stats aggregation, email templates CRUD, episode deletion with feed regeneration
-- Installed supertest + @types/supertest as devDependencies for HTTP-level testing
-- All 49 service tests pass, full project CI green (402+ total tests)
-
-**What I learned:**
-- storage.ts captures DATA_DIR at module load time (top-level const). Dynamic imports are cached by the ES module loader, so all tests within a file share one DATA_DIR. Use beforeAll/afterAll for temp dir, and clean data files between tests in beforeEach
-- The admin config PUT handler accepts empty title/description from missing body fields because it falls back to existing?.title. Tests need clean state (no pre-existing feed-config.json) to test the validation path correctly
-
-**Codebase facts discovered:**
-- Previous agent already wrote core service code (server.ts, routes, storage, email, types, logger) — only storage.test.ts existed
-- Architecture design chose "no Docker" (launchd-managed process), overriding the issue's Docker acceptance criteria
-- Issue #59 still open — remaining work: possible integration test with mocked pipeline, but core tests now cover all routes
-
-**Mistakes made:**
-- Initial email test expected renderTemplate to remove blank lines left by undefined vars — it only collapses 3+ consecutive newlines, not 2
-- Initial handler tests used per-test temp dirs (beforeEach) but modules cache DATA_DIR once — caused cross-test data leaks
-
----
-
-## Agent Session - Issue #9 (sub-issue #59, integration test — CLOSED)
-
-**Worked on:** legal-podcast#59 - Build local pipeline service (pipeline integration test)
-
-**What I did:**
-- Added `__tests__/pipeline.integration.test.ts` — 2 tests covering end-to-end pipeline
-- Test 1: Real DOCX fixture → MIME email → webhook → document extraction → citation cleaning → TTS (mocked) → redline generation → RSS feed update → notification email (mocked). Verifies episodes.json, feed.xml, audio file, metadata, source document, and redline all created correctly.
-- Test 2: Email without DOCX attachment → no episode created
-- Used `vi.mock('@legal-podcast/tts')` to mock TTS providers, `vi.mock('resend')` to mock email sending
-- All 51 service tests pass (4 test files), CI green
-- Closed legal-podcast#59 — all acceptance criteria met (Docker excluded per architecture decision in #58)
-
-**What I learned:**
-- `vi.mock()` with ESM workspace packages works — hoisted above imports as expected
-- Resend client is lazily instantiated via getResend() — need RESEND_API_KEY env var set even with mock, because the mock replaces the Resend constructor but getResend() still checks the env var before instantiating
-- Webhook returns 202 immediately, processes async — integration test polls for output files with timeout
-- Building multipart MIME emails manually requires base64 encoding of DOCX and proper boundary markers
-- Real test fixture (112K chars extracted) processes through citation cleaner → 104K chars cleaned — removes ~7K chars of citations
-
-**Codebase facts discovered:**
-- test-fixtures/ has 5 real DOCX legal documents available for integration testing
-- MockTTSProvider already exists in @legal-podcast/tts package but wasn't used here (mocked at module level instead since webhook.ts creates providers internally)
-
-**Mistakes made:**
-- Initially forgot RESEND_API_KEY env var — mock was in place but email.ts still checked for the key before creating the client
-
----
-
 ## Agent Session - Issue #9 / Sub-issue #60
 
 **Worked on:** Issue #9 - Migrate Legal Podcast, Sub-issue #60 - Serve legal podcast from Mac Mini
@@ -526,3 +440,35 @@ Raw session history for the mac-mini-server project.
 - Test link (Contact 1 → Company 5) was wrong data — should have verified against metadata first
 - populate-contacts-links.py reported 0 inserts due to response parsing error, but data was actually inserted (the bulk API returns different format than expected)
 - Reverse column rename script had a bug: when multiple MM links exist between same table pair, it could rename the wrong column. Worked out due to NocoDB auto-naming matching expected names.
+
+---
+
+## Agent Session - Issue #17
+
+**Worked on:** Issue #17 - Migrate Airtable bases to NocoDB (EA Jobs base — final remaining base)
+
+**What I did:**
+- Created "EA Jobs Database" base in NocoDB (`pxo2rnpo3ud4ulk`)
+- Created Jobs table with 22 columns matching Airtable schema
+- Added SingleSelect/MultiSelect options via column PATCH API (6 select columns, 33 tag options)
+- Migrated all 835 records from Airtable via bulk API insert in 9 batches
+- Verified record count matches: 835/835
+- Spot-checked records: git_id, Title, Organization, Tags, Job Description all populated correctly
+- Updated docs/nocodb-setup.md and LEARNINGS.md
+
+**What I learned:**
+- NocoDB MCP `create_table` does NOT populate select options from `meta.options` — must add them separately via `PATCH /api/v2/meta/columns/{colId}` with `colOptions.options`
+- NocoDB password reset requires using the SAME bcrypt salt from `nc_users_v2.salt` column — generating a new salt won't work even though `bcrypt.compare()` passes
+- NocoDB API tokens (`xc-token` header) only work for data operations, NOT admin/meta like creating bases — need JWT (`xc-auth`) for those
+- Base creation endpoint is workspace-scoped: `POST /api/v2/meta/workspaces/{wsId}/bases/` (not just `/api/v2/meta/bases/`)
+- Must stop NocoDB container before modifying SQLite directly, then restart
+- JWT can be generated inside the Docker container using Node.js `jsonwebtoken` library
+
+**Codebase facts discovered:**
+- NocoDB workspace ID: `wqn2mxm7`
+- NocoDB user ID: `usxydx75wfvfob8h`
+- ea-jobs-database#8 (dependency) is now CLOSED — EA Jobs base was unblocked
+
+**Mistakes made:**
+- Spent significant time on NocoDB auth: JWT generated manually (Python/Node) didn't work even with correct secret — turned out the container's `jsonwebtoken` lib also failed. Password reset worked but only after using the original salt. This should have been the first thing tried.
+- First migration run failed silently (no batch output) because the original script used `json.loads()` error parsing that swallowed the NocoDB validation error about missing select options

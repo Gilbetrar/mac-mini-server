@@ -137,7 +137,7 @@ curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
 |------|-----------|--------|---------|--------|
 | Ben Readings & Notes | `pz0snc66hf3yi5f` | Readings | 746 | Migrated (excl. attachments) |
 | Contacts | `p4b83cic6kiud9b` | Contacts, Companies, Activities, Roles | 856 total | Migrated (excl. attachments & links) |
-| EA Jobs Database | — | — | — | Blocked by ea-jobs-database#8 |
+| EA Jobs Database | `pxo2rnpo3ud4ulk` | Jobs | 835 | Migrated |
 
 ### Contacts Base Tables
 
@@ -156,7 +156,19 @@ curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
 - Migration scripts: `scripts/migrate-readings.py`, `scripts/migrate-contacts.py`, `scripts/populate-contacts-links.py`
 - NocoDB admin email is `ben.bateman.email@gmail.com` (not `ben@bjblabs.com`)
 
+### EA Jobs Base Tables
+
+| Table | NocoDB Table ID | Records | Notes |
+|-------|----------------|---------|-------|
+| Jobs | `mim7su9us6cxvju` | 835 | Denormalized job postings with full descriptions |
+
+**Migration notes:**
+- All 835 records migrated via bulk API insert (script: `scripts/migrate-ea-jobs.py`)
+- 22 fields including: git_id, Title, Organization, Source, Status, Location Type, salary fields, Tags (MultiSelect), Job Description (LongText)
+- SingleSelect/MultiSelect options added via column PATCH API (create_table doesn't populate options)
+- No linked tables — Jobs table is fully denormalized
+- Airtable "Table 1" (default empty table) was not migrated
+
 ## Pending Work
 
-- **Data migration (#17):** EA Jobs base blocked by ea-jobs-database#8. Contacts base fully linked.
-- **EA Jobs merge (#21):** Merge EA Jobs into Contacts base after migration
+- **EA Jobs merge (#21):** Merge EA Jobs into Contacts base (dedup companies, normalize job postings)
