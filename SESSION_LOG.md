@@ -4,6 +4,35 @@ Raw session history for the mac-mini-server project.
 
 ---
 
+## Agent Session - Issue #21
+
+**Worked on:** Issue #21 - Merge EA Jobs into Contacts database (Step 1: fuzzy matching)
+
+**What I did:**
+- Surveyed both NocoDB bases: Contacts (353 Companies, 4 tables) and EA Jobs (835 records, 1 table)
+- Fetched all table schemas and record data via MCP tools
+- Wrote a Python fuzzy matching script (`scripts/org-matching/match_orgs.py`) using difflib.SequenceMatcher
+- Ran the script on the Mac Mini via SSH (direct localhost:8080 access, bypassing Zero Trust)
+- Generated comprehensive match report with 343 unique EA Jobs orgs analyzed
+- Results: 35 exact, 12 high-confidence, 4 true medium matches, 3 acronym matches, 24 false positives, 145 new orgs
+- Created HANDOFF.md with 10 items for Ben to review before proceeding
+
+**What I learned:**
+- NocoDB REST API requires table IDs (like `mk6e9lanspt27rg`) in URL paths, not table titles ("Companies")
+- String-similarity (SequenceMatcher) misses acronym matches entirely (e.g., "Model Evaluation and Threat Research" vs "METR")
+- Running Python scripts on Mac Mini via SSH + localhost:8080 is the fastest way to query NocoDB API (avoids Zero Trust)
+- EA Jobs has lots of duplicate org records (835 records → 343 unique orgs); Anthropic alone has 44 job records
+
+**Codebase facts discovered:**
+- Contacts base ID: p4b83cic6kiud9b, Companies table ID: mk6e9lanspt27rg, Roles table ID: mnoqjf6ajrnx7vn
+- EA Jobs base ID: pxo2rnpo3ud4ulk, Jobs table ID: mim7su9us6cxvju
+- Workspace ID: wqn2mxm7
+
+**Mistakes made:**
+- First script run failed with 404 because I used table title "Companies" instead of table ID in the API URL
+
+---
+
 ## Agent Session - Issue #9 / Sub-issue #60
 
 **Worked on:** Issue #9 - Migrate Legal Podcast, Sub-issue #60 - Serve legal podcast from Mac Mini

@@ -93,6 +93,8 @@ Internet → Cloudflare CNAME (proxied) → cloudflared tunnel → Caddy (:80) �
 - NocoDB auth: admin is `ben.bateman.email@gmail.com` (NOT `ben@bjblabs.com`). JWTs expire — re-auth via signin endpoint. Password reset: must use the SAME salt from `nc_users_v2.salt` column (stop container first, update SQLite, restart). API tokens (`xc-token`) only work for data ops, NOT admin/meta ops like creating bases — use JWT (`xc-auth`) for those. Create bases via `POST /api/v2/meta/workspaces/{wsId}/bases/` (workspace-scoped endpoint)
 - NocoDB select columns: use `colOptions.options` format, NOT `dtxp` — `dtxp` breaks on commas in option names (e.g. "Oxford, UK"). The MCP `create_table` does NOT populate select options — add them separately via `PATCH /api/v2/meta/columns/{colId}` with `{"colOptions":{"options":[{"title":"..."}]}}`
 - NocoDB link columns: create via `POST /api/v2/meta/tables/{id}/columns` with `uidt:"Links",type:"mm",parentId,childId`. Populate via junction tables (`POST /api/v1/db/data/bulk/noco/{baseId}/{mmTableId}`). The `/links/.../records/` endpoint does NOT work in v0.301.5.
+- NocoDB REST API: data endpoints require table IDs (e.g., `mk6e9lanspt27rg`) in URL paths, NOT table titles or names. Format: `/api/v1/db/data/noco/{baseId}/{tableId}`
+- Running scripts on Mac Mini via SSH: `ssh mac-mini-remote 'python3 /tmp/script.py'` — can access NocoDB at localhost:8080 directly, bypassing Zero Trust
 
 ## Repo Conventions
 
