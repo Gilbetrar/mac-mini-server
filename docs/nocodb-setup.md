@@ -151,12 +151,12 @@ curl -s -X POST "localhost:8080/api/v1/db/data/bulk/noco/{baseId}/{tableId}" \
 **Migration notes:**
 - Attachments (Resume, JD File, Anki Cards) were skipped — too complex for API migration
 - Formula fields (`Activity Name`, `Title at Company`) stored as plain text
-- Link columns (Contacts↔Companies, etc.) not yet created — metadata saved in `scripts/contacts-migration-metadata.json`
+- Link columns created and populated (7 MM relationships, 447 total links)
 - Select/MultiSelect options pre-scanned from Airtable and created with `colOptions` (handles commas in names)
-- Migration scripts: `scripts/migrate-readings.py`, `scripts/migrate-contacts.py`
+- Migration scripts: `scripts/migrate-readings.py`, `scripts/migrate-contacts.py`, `scripts/populate-contacts-links.py`
 - NocoDB admin email is `ben.bateman.email@gmail.com` (not `ben@bjblabs.com`)
 
 ## Pending Work
 
-- **Data migration (#17):** EA Jobs base blocked by ea-jobs-database#8. Link columns for Contacts base still needed.
+- **Data migration (#17):** EA Jobs base blocked by ea-jobs-database#8. Contacts base fully linked.
 - **EA Jobs merge (#21):** Merge EA Jobs into Contacts base after migration
