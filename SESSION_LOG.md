@@ -434,3 +434,40 @@ Raw session history for the mac-mini-server project.
 - Add optional link from Applications to Job Postings
 - Delete standalone EA Jobs base
 - Ben needs to review 3 context-needed matches (RAND Corporation, Animal Equality, EA Funds)
+
+---
+
+## Agent Session - 2026-04-21 — Migration wrap-up
+
+**Worked on:** Issue #21 human-review items, AWS teardown (issues #7, #9, #12), Cloudflare Email Worker bug fix.
+
+**What I did:**
+1. **Match report resolution (issue #21)** — walked Ben through the 10 flagged matches. He confirmed RAND Corporation = RAND = RAND CAST (merge), Animal Equality as new, EA Funds as new, and approved the 7 auto-linked medium-confidence matches. Also flagged and merged duplicate UK AI Security Institute records (IDs 65 + 243).
+2. **RAND merge** — wrote `scripts/merge-companies.py` and `scripts/recover-rand-links.py` (executed on Mac Mini via SSH + `npx wrangler` pattern). Canonical Company 431 now has career data from 50 and 311, Role 14 title is "Director of Operations, CAST", all contacts (5)/roles (1)/activities (7) re-linked.
+3. **UK AI Security Institute merge** — Company 65 renamed to "UK AI Security Institute" with website + Bill's 0-tier note; Company 243 deleted.
+4. **Cloudflare Email Worker fix** — user's test email to `podcast@bjblabs.com` bounced with HTTP 405. Root cause: `email-worker/wrangler.toml` had `WEBHOOK_URL = .../webhook/email` (singular); service expects `/webhooks/email` (plural). Fixed, redeployed via `npx wrangler deploy` on Mac Mini, verified end-to-end — service now logs "No DOCX attachments found" for test sender (auth + parsing works).
+5. **AWS teardown (partial)** — terminated OpenClaw EC2 `i-0cc417431630fdfc5`. Deleted `LegalPodcastStack` (required deactivating the SES rule set `legal-podcast-rules` first; initial delete-stack failed on the active ruleset). Cleaned up 9 email-related Route 53 records (MX, 2 DMARC TXT, 6 DKIM CNAMEs). Zone now has 4 records: NS, SOA, and 2 orphan ACM validation CNAMEs (pending Ben's OK on the final 2 delete-then-zone steps).
+
+**What I learned:**
+- **NocoDB junction rows have no exposed row ID via the data API** — the PATCH-by-row-id approach fails with `/None` URL and HTTP 500. Junction rows are identified by the composite `(fk1, fk2)` pair only. For merges, use INSERT + bulk DELETE by composite key, not PATCH. (Full pattern in `scripts/merge-companies.py` + `scripts/recover-rand-links.py`.)
+- **NocoDB Company delete does NOT cascade** to junction rows — they become zombie rows pointing to dangling FK. UI rollups silently ignore them but they're dirty data; clean up via bulk DELETE by composite key.
+- **SES active receipt rule sets block CloudFormation delete** — must call `aws ses set-active-receipt-rule-set` (with no args) to deactivate before `delete-stack` can remove the rule set resource.
+- **Wrangler authentication quirk** — `npx wrangler deploy` with `CLOUDFLARE_API_TOKEN` env var hits `/memberships` on startup, fails with 10000 if the token lacks "User Details: Read". Workaround: also set `CLOUDFLARE_ACCOUNT_ID` explicitly (account `95f53250a929e155644f51e03fc7c910` for this account).
+- **Caddy routes mismatch between Worker and service** silently route to static-file fallback — a GET returning 200 and a POST returning 405 on the same URL is the signature.
+
+**Codebase facts discovered:**
+- Junction table IDs in Contacts base: `mm375v0y4lmezkm` (Contacts↔Companies Current), `m4pmrpbinopg4wd` (Contacts↔Companies Past), `m1y3ddrl9qv6t3m` (Companies↔Roles), `mav5v1ftufxhx4j` (Companies↔Activities).
+- Canonical records after merge: Company 431 "RAND Corporation", Company 65 "UK AI Security Institute".
+- Animal Equality (ID 407) and EA Funds (ID 412) already existed as distinct Companies from the earlier migration — no action needed.
+- Companies table has 642 rows (expected ~498). Previous migration's first-run duplicates need a dedup sweep later.
+- Cloudflare Worker `legal-podcast-email-forwarder` deployed from `email-worker/` via `npx wrangler deploy`; version ID `5c89d2ba-95bf-408a-b19b-f2976c86307e`.
+
+**Mistakes made:**
+- First RAND merge attempt used PATCH on junction rows with `row.get("id") or row.get("Id")` — both returned None, URL became `.../None`, HTTP 500. Delete of Companies 50/311 went through before the PATCH errors were caught, leaving 13 orphaned records for ~30 seconds until recovery script re-inserted the junction links.
+- Originally assumed the webhook path was `/webhook/email` based on wrangler.toml, when service code + docs + tests all use `/webhooks/email`. Should have grepped the service repo before sending the first test email.
+
+**Remaining work:**
+- Final 2 Route 53 CNAMEs + zone deletion (blocked on explicit user OK due to sandbox caution)
+- Roles → Applications rename + add Applications↔Job Postings link (issue #21)
+- Delete standalone EA Jobs base in NocoDB (issue #21)
+- Dedup sweep on Companies table + zombie junction cleanup
